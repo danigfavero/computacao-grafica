@@ -35,21 +35,23 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 
 #### Imagens raster x vetoriais
 
-- Imagem raster: matriz de pontos (rasterização é quebrar a imagem em pixel)
+- Imagem *raster*: matriz de pontos (rasterização é quebrar a imagem em pixel)
 - Imagem vetorial: lista de pontos
 
 #### Sistemas gráficos
 
 - monitores antigamente eram vetoriais (vector graphics)
-- LCD: sistema gráfico raster
+
+- LCD: sistema gráfico *raster*
 
 - **Um problema**
-  - Traçar uma reta entre 2 pontos em um monitor com imagem raster
-    - Falta de continuidade: problemas de aliasing (a reta na verdade se torna conjuntos de blocos, ou seja, pixels) -- problema de quantização
+  
+  - Traçar uma reta entre 2 pontos em um monitor com imagem *raster*
+    - Falta de continuidade: problemas de *aliasing* (a reta na verdade se torna conjuntos de blocos, ou seja, pixels) -- problema de quantização
     - Esse problema pode ser resolvido se os pixels deixarem de ser binários e passam a ter níveis de cinza entre 1 byte
   - IDEIA: algoritmo de Bresenham, para linhas
-  - Hipótese: $\theta < 45º$
-
+- Hipótese: $\theta < 45º$
+  
   ```pseudocode
   f(x0, y0) = 0
   próximo ponto deve ser f(x0+1, y0) ou f(x0+1, y0+1)
@@ -64,15 +66,19 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
   senão:
   	pinte (x0+1, y0+1)
   	D += A + B # soma dy - dx
-  ```
+```
+  
+O algoritmo só precisa de soma, subtração e *shift* (divisão por 2) -- é um algoritmo muito eficiente
+  
+- Sistema gráfico *raster* com processador gráfico
 
-  O algoritmo só precisa de soma, subtração e shift (divisão por 2) -- é um algoritmo muito eficiente
+## O domínio da computação gráfica
 
-- Sistema gráfico raster com processador gráfico
+![cg-visao-e-processamento](./img/dominio.jpg)
 
-## Elementos gráficos
+### Elementos gráficos
 
-- **pixel** = picture element, é a unidade na qual trabalharemos
+- **pixel** = *picture element*, é a unidade na qual trabalharemos
   - pode ter valor binário (0 | 1), cinza (1 byte, ou seja, [0,255]), ou cor
 - **desenho** = formas geométricas, polilinhas -> **vetoriza**
   - linhas abertas 
@@ -80,4 +86,40 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
   - linhas podem se cruzar ou não
 - **pintura** = nasce do polígono: pintar  que está dentro, ou pintar o que está fora, ou a borda -> **rasteriza**
   - pintar é modificar propriedades de elementos gráficos
+
+### Informações da cena
+
+![informacoes](./img/informacoes.jpg)
+
+### A Câmera
+
+- "Plano de imagem" -- a imagem está na câmera
+
+![pinhole](./img/pinhole.jpg)
+
+- Além da posição e da orientação, o **zoom** definido na câmera também modifica a imagem
+
+- O **FOV** é inversamente proporcional ao comprimento focal e ao zoom
+
+### A Imagem
+
+- **W**idth: largura da imagem
+- **H**eight: altura da imagem
+- **W/H**: *aspect ratio*
+
+- Pixel: profundidade
+  - Número de bits
+    - 1 bit - binária, 
+    - 8 bits - cinza, 
+    - 24 bits - RGB, 
+    - 32 bits - RGBA  (canal alfa para opacidade ou profundidade)
+
+### Cor
+
+- Comprimento de onda (eletromagnética) ou partícula (fóton) 
+- Percepção - constância de cor
+
+* *Halftoning* - impressoras
+
+![img](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Halftoningcolor.svg/408px-Halftoningcolor.svg.png)
 

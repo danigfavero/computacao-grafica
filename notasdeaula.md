@@ -50,7 +50,7 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
     - Falta de continuidade: problemas de *aliasing* (a reta na verdade se torna conjuntos de blocos, ou seja, pixels) -- problema de quantização
     - Esse problema pode ser resolvido se os pixels deixarem de ser binários e passam a ter níveis de cinza entre 1 byte
   - IDEIA: algoritmo de Bresenham, para linhas
-- Hipótese: $\theta < 45º$
+  - Hipótese: $\theta < 45º$
   
   ```pseudocode
   f(x0, y0) = 0
@@ -66,9 +66,9 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
   senão:
   	pinte (x0+1, y0+1)
   	D += A + B # soma dy - dx
-```
+  ```
   
-O algoritmo só precisa de soma, subtração e *shift* (divisão por 2) -- é um algoritmo muito eficiente
+  O algoritmo só precisa de soma, subtração e *shift* (divisão por 2) -- é um algoritmo muito eficiente
   
 - Sistema gráfico *raster* com processador gráfico
 
@@ -122,4 +122,3 @@ O algoritmo só precisa de soma, subtração e *shift* (divisão por 2) -- é um
 * *Halftoning* - impressoras
 
 ![img](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Halftoningcolor.svg/408px-Halftoningcolor.svg.png)
-

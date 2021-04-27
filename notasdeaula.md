@@ -122,3 +122,8 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 * *Halftoning* - impressoras
 
 ![img](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Halftoningcolor.svg/408px-Halftoningcolor.svg.png)
+
+## Javascript Canvas
+
+- Código dentro do diretório `javascript_examples`
+

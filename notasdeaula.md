@@ -127,3 +127,34 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 
 - Código dentro do diretório `javascript_examples`
 
+### [EP1] Fractais
+
+- Qual o perímetro da costa da Escócia?
+
+- Dimensão fractal
+
+  - 1 dimensão: linha
+    - 1 $\epsilon$-bola
+    - Quantas bolas de tamanho $\frac{\epsilon}{2}$ são necessárias para cobrir o mesmo objeto? $2$
+    - $\frac{1}{a} \implies$ vou precisar de $a$ vezes mais bolas
+  - 2 dimensão: plano
+    - 1 bola de tamanho $\epsilon$
+    - Quantas bolas de tamanho $\frac{\epsilon}{2}$ são necessárias para cobrir o mesmo objeto? $4$
+    - $\frac{1}{a} \implies$ vou precisar de $a^2$ vezes mais bolas
+
+  - Triângulo de Sierpinski
+    - $N(A, \epsilon) \rightarrow $ menor número de $\epsilon$-bolas para cobrir $A$ 
+    - $\frac{1}{2}^d \approx 1.58...$ 
+
+- Funções iteradas
+
+  - $z \rightarrow z^2$
+
+- Números complexos
+
+- Atratores
+
+- Conjuntos de Julia: $z \rightarrow z^2 + c$
+
+  
+

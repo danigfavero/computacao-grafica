@@ -125,12 +125,13 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 
 ## Javascript Canvas
 
+- Callbacks (eventos)
+- Máquina de estados
 - Código dentro do diretório `javascript_examples`
 
-### [EP1] Fractais
+## Fractais
 
 - Qual o perímetro da costa da Escócia?
-
 - Dimensão fractal
 
   - 1 dimensão: linha
@@ -145,16 +146,129 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
   - Triângulo de Sierpinski
     - $N(A, \epsilon) \rightarrow $ menor número de $\epsilon$-bolas para cobrir $A$ 
     - $\frac{1}{2}^d \approx 1.58...$ 
-
 - Funções iteradas
 
   - $z \rightarrow z^2$
-
 - Números complexos
-
 - Atratores
-
 - Conjuntos de Julia: $z \rightarrow z^2 + c$
 
-  
+## WebGL e o Pipeline Gráfico
 
+### No canvas...
+
+- Como funciona uma **API 2D** (Application Programming Interface)
+  - canvas do HTML5 — usa um modelo *pen-plotter* (controle de uma "caneta" por meio de deslocamento nos eixos $(x,y)$)
+  - `moveTo(x0,y0)` e `lineTo(x1,y1)`
+
+### API 3D
+
+#### Processo de formação de imagem
+
+![processo de formação de imagem](./img/processo-de-formacao-de-imagem.jpg)
+
+#### Hardware
+
+![hardware](./img/hardware.jpg)
+
+- Framerate $\neq$ framebuffer
+
+### Raytracing 
+
+- **Ray casting:** projetar cada pixel na imagem e checar se ele incide no objeto, se sim, pegar a cor (dada pela função da superfície e sua interação com a fonte de luz)
+- **Ray tracing:** não é só uma função da superfície e sua interação com a fonte de luz — pode haver espelhos (reflexão), objetos fazendo sombra em outros, refração
+- Computacionalmente muito caro
+
+### Pipeline gráfico
+
+- Primitivas geométricas: vértices, linhas e triângulos
+- Calcular interação das primitivas geométricas com cores, superfícies
+- Projetar objetos matemáticos (que já conhecemos) na imagem
+
+- Geometria (linhas e vértices) $\rightarrow$ RASTER (pixels)
+  - Linha de produção: paralelização
+
+![pipeline gráfico](/home/dani/Documents/CG/img/pipeline-grafico.jpg)
+
+- **Processador de vértices**
+- **Clipping e montagem de primitivas**: além do plano delimitado pelo *field of view* ($\approx 90º$), o cone da *clipping window* é truncado em "perto" e "longe"  
+- **Rasterização**
+- **Processador de fragmentos**
+
+### OPENGL - Open Graphics Library
+
+#### Histórico
+
+- Silicon Graphics (SGI) — IRIS — **IRIS GL** (específico para uma arquitetura)
+
+- **OpenGL 1.0** (1992) — *immediate-mode graphics* 
+  - CPU gera os vértices
+  - Problema $\rightarrow$ não tinha memória
+- **OpenGL 2.0** (2004) — OpenGL Shading Language (GLSL)
+  - Permite criar ***shaders*** $\rightarrow$ roda na GPU
+  - *retained-mode graphics*
+- **OpenGL 3.0** (2008) — não dá mais suporte ao *immediate-mode*
+
+- Dispositivos móveis — **OpenGL ES** (*Embedded Systems*)
+  - OGL ES 1.0 (2003) — OpenGL 1.3
+  - OGL ES 2.0 (2007) — OpenGL 2.0
+  - OGL ES 3.0 (2012) — OpenGL 3.0
+- **WebGL 2.0** — OGL ES 3.0
+  - suporta *shaders*
+- Outras libs ainda usadas: **Direct X**
+
+#### Medidas de desempenho
+
+- **Triângulos por segundo** — geometria (front-end)
+  - Capacidade de renderização
+  - Quantas primitivas geométricas são desenhadas por medida de tempo
+- **Movimentação de dados** (back-end)
+  - Through-put
+  - Capacidade da placa de mandar informação para o frame buffer
+
+- Frame buffer com **float** — HDR
+  - Processamento mais detalhado
+
+#### Exemplo
+
+Função em OpenGL:
+
+- Immediate mode
+
+````pseudocode
+function desenhe_Julia()
+	init
+	for cada ponto:
+		calcule e
+		pinte o ponto # display
+    clean
+````
+
+- Retained mode
+
+````pseudocode
+function desenhe_Julia()
+	init
+	for cada ponto:
+		calcule e
+		salve o ponto em Q  # matriz salva na placa gráfica
+	display Q
+    clean
+````
+
+Mas ainda não conseguimos mudar o `Q`...
+
+- Shaders
+
+````pseudocode
+function desenhe_Julia()
+	init
+	for cada ponto:
+		calcule e
+		salve o ponto em Q
+	enviar Q # shader
+	display Q 
+    clean
+````
+
+O shader roda na GPU

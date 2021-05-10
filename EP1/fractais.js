@@ -70,6 +70,7 @@ var gCanvas, gWidth, gHeight, gCtx;
 
 // outra variáveis se desejar
 var reseted = true;
+var xMouseDown = yMouseDown = 0; // para o retângulo
 
 /*
     função main
@@ -100,7 +101,7 @@ function map(number, inMin, inMax, outMin, outMax) {
     return (number - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
-function isInMandelbrotWindow (x, y) {
+function isInMandelbrotWindow(x, y) {
     return x >= 0 && x < 400 && y >= 0 & y < 400;
 }
 
@@ -178,6 +179,28 @@ function mandelbrotWindow(x0, xn, y0, yn) {
     }
 }
 
+// operações
+function setNewCForJuliaFatou(x, y) {
+    let cx = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
+    let cy = map(y, 0, gHeight, MANDEL_B, MANDEL_T);
+    juliaFatouWindow(0, gWidth, gHeight, gHeight*2, cx, cy);
+}
+
+function rectangleSelectionForMandelbrot(x0, xn, y0, yn) {
+    if (x0 > xn) {
+        let tmp = x0;
+        x0 = xn;
+        xn = tmp;
+    }
+    if (y0 > yn) {
+        let tmp = y0;
+        y0 = yn;
+        yn = tmp;
+    }
+
+    //mandelbrotWindow();
+}
+
 // UI
 function keyDown(e) {
     if (e.keyCode == R && !reseted) { // reset
@@ -192,17 +215,12 @@ function mouseDown(e) {
     if (!isInMandelbrotWindow(x, y)) return;
 
     if (e.shiftKey) {
-        if (DEBUG) {
-            console.log("down", x, y);
-        }
-    } else {
-        if (DEBUG) {
-            console.log("ponto", x, y);
-        }
+        if (DEBUG) console.log("down", x, y);
+        [xMouseDown, yMouseDown] = [x, y];
 
-        let cx = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
-        let cy = map(y, 0, gHeight, MANDEL_B, MANDEL_T);
-        juliaFatouWindow(0, gWidth, gHeight, gHeight*2, cx, cy);
+    } else {
+        if (DEBUG) console.log("ponto", x, y);
+        setNewCForJuliaFatou(x, y);
         reseted = false;
     }
 }
@@ -213,9 +231,10 @@ function mouseUp(e) {
 
     if (e.shiftKey) {
         if (DEBUG) {
+            console.log("Ini", xMouseDown, yMouseDown);
             console.log("up", x, y);
         }
-        // cria janela
+        rectangleSelectionForMandelbrot(xMouseDown, x, yMouseDown, y);
         reseted = false;
     }
 }

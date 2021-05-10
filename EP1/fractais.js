@@ -39,7 +39,8 @@
 const DEBUG = true;
 const ITERATIONS = 100;
 const DELTA = 4;
-const SHIFT = 16;  // código ASCII da tecla 
+const SHIFT = 16;  // código ASCII da tecla
+const R = 82;
 
 // Condições iniciais de Julia e Mandelbrot
 const CX = -0.62, CY = -0.44;
@@ -68,6 +69,7 @@ const NCORES = CORES.length;
 var gCanvas, gWidth, gHeight, gCtx;
 
 // outra variáveis se desejar
+var reseted = true;
 
 /*
     função main
@@ -83,39 +85,34 @@ function main() {
     console.log( msg );
 
     // RESTO DA SUA FUNÇÃO MAIN
-    for (let x = 0; x < gWidth; x++) {
-        for (let y = 0; y < gHeight; y++) {
-            let a = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
-            let b = map(y, 0, gHeight, MANDEL_T, MANDEL_B);
+    mandelbrotWindow(0, gWidth, 0, gHeight);
+    juliaFatouWindow(0, gWidth, gHeight, gHeight*2);
 
-            gCtx.fillStyle = mandelbrot(a, b);
-            gCtx.fillRect(x, y, x, y);
-        }
-    }
-
-    for (let x = 0; x < gWidth; x++) {
-        for (let y = gHeight; y < gHeight*2; y++) {
-            let a = map(x, 0, gWidth, JULIA_L, JULIA_R);
-            let b = map(y, gHeight, gHeight*2, JULIA_B, JULIA_T);
-
-            gCtx.fillStyle = juliaFatou(a, b);
-            gCtx.fillRect(x, y, x, y);
-        }
-    }
+    document.addEventListener('keydown', e => keyDown(e));
+    gCanvas.addEventListener('mousedown', e => mouseDown(e));
+    gCanvas.addEventListener('mouseup', e => mouseUp(e));
 }
 
 // outras funções
+
+// auxiliares
 function map(number, inMin, inMax, outMin, outMax) {
     return (number - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
-function juliaFatou(a, b) {
+function isInMandelbrotWindow (x, y) {
+    return x >= 0 && x < 400 && y >= 0 & y < 400;
+}
+
+// pixel-wise
+function juliaFatouPixel(a, b, cx=CX, cy=CY) {
     let iteration = 0;
 
     while (a*a + b*b < DELTA && iteration < ITERATIONS) {
-        let tmp = a*a - b*b + CX;
-        b = 2*a*b + CY;
-        a = tmp;
+        let real = a*a - b*b;
+        let imaginary = 2*a*b;
+        a = real + cx;
+        b = imaginary + cy;
 
         iteration++;
     }
@@ -127,16 +124,17 @@ function juliaFatou(a, b) {
     }
 }
 
-function mandelbrot(a, b) {
+function mandelbrotPixel(a, b) {
     let iteration = 0;
 
     let a0 = a;
     let b0 = b;
 
     while (a*a + b*b < DELTA && iteration < ITERATIONS) {
-        let tmp = a*a - b*b;
-        b = 2*a*b + b0;
-        a = tmp + a0;
+        let real = a*a - b*b;
+        let imaginary = 2*a*b;
+        a = real + a0;
+        b = imaginary + b0;
 
         iteration++;
     }
@@ -145,6 +143,81 @@ function mandelbrot(a, b) {
         iteration = 0;
     }
     return CORES[iteration % NCORES];
+}
+
+// gerador de fractais
+function juliaFatouWindow(x0, xn, y0, yn, cx=CX, cy=CY) {
+    if (DEBUG) { 
+        console.log("juliaFatouWindow(", x0, xn, y0, yn, cx, cy, ")");
+    }
+
+    for (let x = x0; x < xn; x++) {
+        for (let y = y0; y < yn*2; y++) {
+            let a = map(x, x0, xn, JULIA_L, JULIA_R);
+            let b = map(y, y0, yn, JULIA_B, JULIA_T);
+
+            gCtx.fillStyle = juliaFatouPixel(a, b, cx, cy);
+            gCtx.fillRect(x, y, x, y);
+        }
+    }
+}
+
+function mandelbrotWindow(x0, xn, y0, yn) {
+    if (DEBUG) { 
+        console.log("mandelbrotWindow(", x0, xn, y0, yn, ")");
+    }
+
+    for (let x = x0; x < xn; x++) {
+        for (let y = y0; y < yn*2; y++) {
+            let a = map(x, x0, xn, MANDEL_L, MANDEL_R);
+            let b = map(y, y0, yn, MANDEL_T, MANDEL_B);
+
+            gCtx.fillStyle = mandelbrotPixel(a, b);
+            gCtx.fillRect(x, y, x, y);
+        }
+    }
+}
+
+// UI
+function keyDown(e) {
+    if (e.keyCode == R && !reseted) { // reset
+        mandelbrotWindow(0, gWidth, 0, gHeight);
+        juliaFatouWindow(0, gWidth, gHeight, gHeight*2);
+        reseted = true;
+    }
+}
+
+function mouseDown(e) {
+    let [x, y] = [e.offsetX, e.offsetY];
+    if (!isInMandelbrotWindow(x, y)) return;
+
+    if (e.shiftKey) {
+        if (DEBUG) {
+            console.log("down", x, y);
+        }
+    } else {
+        if (DEBUG) {
+            console.log("ponto", x, y);
+        }
+
+        let cx = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
+        let cy = map(y, 0, gHeight, MANDEL_B, MANDEL_T);
+        juliaFatouWindow(0, gWidth, gHeight, gHeight*2, cx, cy);
+        reseted = false;
+    }
+}
+
+function mouseUp(e) {
+    let [x, y] = [e.offsetX, e.offsetY];
+    if (!isInMandelbrotWindow(x, y)) return;
+
+    if (e.shiftKey) {
+        if (DEBUG) {
+            console.log("up", x, y);
+        }
+        // cria janela
+        reseted = false;
+    }
 }
 
 /*

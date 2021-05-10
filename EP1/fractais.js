@@ -86,7 +86,7 @@ function main() {
     for (let x = 0; x < gWidth; x++) {
         for (let y = 0; y < gHeight; y++) {
             let a = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
-            let b = map(y, 0, gHeight, MANDEL_B, MANDEL_T);
+            let b = map(y, 0, gHeight, MANDEL_T, MANDEL_B);
 
             gCtx.fillStyle = mandelbrot(a, b);
             gCtx.fillRect(x, y, x, y);
@@ -97,7 +97,7 @@ function main() {
         for (let y = gHeight; y < gHeight*2; y++) {
             let a = map(x, 0, gWidth, JULIA_L, JULIA_R);
             let b = map(y, gHeight, gHeight*2, JULIA_B, JULIA_T);
-            
+
             gCtx.fillStyle = juliaFatou(a, b);
             gCtx.fillRect(x, y, x, y);
         }
@@ -109,30 +109,21 @@ function map(number, inMin, inMax, outMin, outMax) {
     return (number - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
-function toRadians(theta) {
-    return theta * 180 / Math.PI;
-}
-
-function toComplex(x, y) {
-    // x = toRadians(x);
-    // y = toRadians(y);
-    return [x*Math.cos(y), x*Math.sin(y)];
-}
-
 function juliaFatou(a, b) {
     let iteration = 0;
 
     while (a*a + b*b < DELTA && iteration < ITERATIONS) {
         let tmp = a*a - b*b + CX;
         b = 2*a*b + CY;
-        a = tmp; 
+        a = tmp;
+
         iteration++;
     }
 
     if (iteration === ITERATIONS) {
-        return 'magenta';
+        return CORES[1];
     } else {
-        return 'black';
+        return CORES[0];
     }
 }
 
@@ -142,19 +133,18 @@ function mandelbrot(a, b) {
     let a0 = a;
     let b0 = b;
 
-    while (a * a + b * b < DELTA && iteration < ITERATIONS) {
-        let tmp = a*a - b*b + CX;
-        b = 2*a*b; + b0 + CY;
+    while (a*a + b*b < DELTA && iteration < ITERATIONS) {
+        let tmp = a*a - b*b;
+        b = 2*a*b + b0;
         a = tmp + a0;
-        
+
         iteration++;
     }
 
     if (iteration === ITERATIONS) {
-        return 'black';
-    } else {
-        return 'magenta';
+        iteration = 0;
     }
+    return CORES[iteration % NCORES];
 }
 
 /*

@@ -188,7 +188,7 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 - Geometria (linhas e vértices) $\rightarrow$ RASTER (pixels)
   - Linha de produção: paralelização
 
-![pipeline gráfico](/home/dani/Documents/CG/img/pipeline-grafico.jpg)
+![pipeline gráfico](./img/pipeline-grafico.jpg)
 
 - **Processador de vértices**
 - **Clipping e montagem de primitivas**: além do plano delimitado pelo *field of view* ($\approx 90º$), o cone da *clipping window* é truncado em "perto" e "longe"  
@@ -272,3 +272,314 @@ function desenhe_Julia()
 ````
 
 O shader roda na GPU
+
+### API 3D
+
+- Para desenhar em 3D: queremos escolher o **sistema de coordenadas (SC)**, independente do dispositivo
+- **Em 2D** (vimos no canvas)...
+  - Mapeamento mundo $\rightarrow$ dispositivo
+  - Manter aspect ratio X distorcer — depende da aplicação
+
+**O que uma API 3D deve oferecer?**
+
+1. **Funções de desenho**:
+
+   - Na forma de primitivas geométricas
+   - **Vértice** (consiste de um ponto e outros atributos/propriedades: cor, textura, transparência, normal, etc) $\neq$ ponto (posição no espaço)
+     - **2 vértices podem representar**:
+       - 2 vértices
+       - segmento de reta
+       - retângulo
+       - circunferência (centro, ponto $\in$ borda)
+     - **3 vértices:**
+       - triângulo (o polígono mais simples)
+       - circunferência (pontos $\in$ borda)
+   - **Linhas**
+   - **Triângulos**
+   - Ideia: decompor objetos 3D em triângulos
+   - Associar propriedades às primitivas 
+
+2. **Funções de definição de câmera:**
+
+   **Clipping volume**
+
+   - Janela de clipping
+
+   - Definido por um cubo: pontos `(left, bottom, near)` e `(right, top, far)`
+
+     ![clipping volume](./img/clipping-volume.jpg)
+
+   - Volume canônico: pontos `(-10, -10, -10)` e `(1, 1, 1)`
+
+   - Coordenadas (projeção ­— o pipeline faz o resto)
+
+3. **Funções de callback:**
+   - Tratar eventos (entrada)
+   - Feito pelo canvas — HTML5
+   - Depende do ambiente
+4. **Funções de controle:**
+   - Para conseguir ser independente de dispositivo
+   - Se comunicar com o sistema 
+     - Ser capaz de fazer perguntas (width, height, etc)
+     - Receber interrupções
+     - Inclusive mensagens de erro
+   - No caso do WebGL, o navegador é o sistema
+
+### Desenho em 2D
+
+- Área de desenho contida entre `(-1, -1)` e `(1, 1)`
+- Plano `z = 0`
+
+#### Máquina de estados
+
+- Cubo de cores
+
+![Schematic of the RGB color cube. Points along the main diagonal have... |  Download Scientific Diagram](https://www.researchgate.net/profile/Jesus-Coronado/publication/293487026/figure/fig1/AS:669371299029017@1536601962955/Schematic-of-the-RGB-color-cube-Points-along-the-main-diagonal-have-gray-values.png)
+
+- `cor = (R, G, B, alpha)`
+- $\alpha = $ opacidade (oposto da transparência)
+
+### Shaders
+
+- Um programa em WebGL é composto por 2 shaders
+  - vertex shader (VS): transforma vértices
+  - fragment shader (FS): "pinta" cada pixel
+- Os shaders são escritos em **GLSL (OpenGL Shader Language)**
+- Precisam ser compilados e depois linkados
+- Um programa é executado chamando a `gl.drawArrays` ou `gl.drawElements`
+
+- Para desenhar, é necessário passar dados para a GPU
+  1. **Atributos, buffers e arrays de vértices**
+     - **buffers:** contém informações sobre posição, cor, normal, etc
+       - são acessados sequencialmente, cada vez que ele é acessado ele devolve o próximo elemento disponível
+     - **atributos:** definem como os dados devem ser acessados nos buffers
+     - **vertex array object (VAO)**: armazena o estado dos atributos e buffers
+  2. **Uniformes**
+     - variáveis globais que podem ser aplicadas a todos os vértices
+     - ao contrário de um atributo que é aplicado a um vértice apenas
+  3. **Texturas**
+     - vetor de dados que podem ser acesados pelos shaders
+     - em geral correspondem a imagens
+  4. **Varyings**
+     - forma do VS passar dados diretamente para o FS
+
+**Exemplo de Vertex Shader (VS):**
+
+````cpp
+#version 300 es //PRECISA SER A 1ª LINHA PARA WebGL 2
+// atributo é uma entrada (in) para receber o VS, receberá dados de um buffer
+in vec4 aPosition;
+
+void main() {
+    // gl_Position é uma variável que deve ser especificada pelo VS
+    gl_Position = aPosition;
+}
+````
+
+**Em JavaScript: crie uma string**
+
+````javascript
+// vertex shader
+var vertexShaderSrc = `#version 300 es
+in vec4 aPosition;
+void main() {
+    gl_Position = aPosition;
+}
+`;
+````
+
+**Exemplo de Fragment Shader (FS)**
+
+````cpp
+#version 300 es
+precision highp float; // vc deve definir a precisão do FS -- highp para desktop, mediump para mobile
+
+out vec4 outColor; // crie um vetor de saída para o FS
+
+void main() {
+    // escolha uma cor inicial usando RGBA -- como cinza
+	outColor = vec4(0.5, 0.5, 0.5, 1.0);
+}
+````
+
+**Em JS:**
+
+````javascript
+var fragmentShaderSrc = `#version 300 es
+precision highp float; 
+out vec4 outColor;
+void main() {
+	outColor = vec4(0.5, 0.5, 0.5, 1.0);
+}
+`;
+````
+
+**Função auxiliar para compilação**
+
+````javascript
+function compile (gl, type, source) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    var deuCerto = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (deuCerto) {
+        return shader;
+    }
+    // mostra o erro
+    console.log(gl.getShaderInfoLog(shader))
+    gl.deleteShader(shader);
+}
+````
+
+**Função auxiliar para linkar os shaders**
+
+````javascript
+function link(gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var deuCerto = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (deuCerto) {
+        return program;
+    }
+    // mostra o erro
+    console.log(gl.getProgramInfoLog(program))
+    gl.deleteProgram(program);
+}
+````
+
+**Compilar e linkar**
+
+````javascript
+var vertexShader = compile(gl, gl.VERTEX_SHADER, vertexShaderSrc2);
+var fragmentShader = compile(gl, gl.FRAGMENT_SHADER, fragmentShaderSrc2);
+var program = link(gl, vertexShader, fragmentShader);
+````
+
+**Referência para acessar os atributos do VS:**
+
+````javascript
+// pega referências para atributos e uniformes
+var aPosition = gl.getAttribLocation(program, 'aPosition');
+````
+
+**Buffer para passar os dados ao VS:**
+
+````javascript
+// criar um buffer para passar dados para a GPU
+var positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+// cria o VAO e diga para usar os dados do buffer
+var vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+gl.enableVertexAttribArray(aPosition);
+````
+
+**Defina como ler os dados do buffer**
+
+````javascript
+// Diga como tirar os dados
+var size = 2; // 2 de cada vez
+var type = gl.FLOAT; // tipo = float de 32 bits
+var normalize = false; // não normalize os dados
+var stride = 0; // 0 = quanto deve avançar a cada iteração para o próximo
+var offset = 0; // começa do início
+gl.vertexAttribPointer(aPosition, size, type, normalize, stride, offset);
+````
+
+**Definir onde exibir no canvas**
+
+````javascript
+// Defina onde como converter do volume de recorte para a janela
+gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+````
+
+**Vamos desenhar**
+
+```` javascript
+// cor para definir cor de fundo do canvas
+gl.clearColor(0.0, 0.0, 1.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+// Define o programa a ver usado
+gl.userProgram(program);
+
+// buffer a ser usado e como usar
+gl.bindVertexArray(vao);
+````
+
+**Vértices**
+
+````javascript
+// vamos definir 3 pontos usando JS array
+var positions = [
+    0, 0,
+    0, 0.5,
+    0.7, 0,
+];
+
+// WebGL é fortemente tipada. Use Float32Array
+// gl.bufferData copia os vértices para a GPU
+// STATIC implica que esses dados não devem ser mudados com frequência
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+````
+
+**Finalmente...**
+
+````javascript
+var primitiveType = gl.TRIANGLES;
+var offset = 0;
+var count = 3; // quantas coisas eu vou tirar do array (2 de cada vez)
+gl.drawArray(primitiveType, offset, count);
+````
+
+- Note que a origem da janela do WebGL é no canto inferior esquerdo
+
+**Utilizando uniformes para modificar cores no Javascript**
+
+````cpp
+// no fragment shader...
+#version 300 es
+precision highp float;
+uniform vec4 uColor = vec4(0.5, 0.5, 0.5, 1.0); // define uniforme para cor
+out vec4 outColor;
+
+void main() {
+	outColor = uColor;
+}
+````
+
+````javascript
+var uColor = gl.getUniformLocation(program, 'uColor'); // pegando uniforme do shader
+````
+
+````javascript
+gl.uniform4f(uColor, 1.0, 0.0, 1.0, 1.0); // mudando cor
+````
+
+**Utilizando uniformes para fazer translações e redimensionamento** 
+
+````cpp
+// no vertex shader...
+#version 300 es
+in vec2 aPosition; // vec2 porque as outras duas coordenadas estarão na resolução
+uniform vec2 uResolution; // define uniforme para resolução
+
+void main() {
+    vec2 scale = aPosition / uResolution; // normalização entre 0 e 1
+    vec2 scale2 = scale1 * 2.0; // mapeando para ficar entre -1 e 1
+    vec2 clipSpace = scale2 - 1.0; // translação
+    gl_Position = vec4(clipSpace, 0, 1); // preenche o espaço com 0 e 1
+}
+````
+
+````javascript
+var uResolution = gl.getUniformLocation(program, 'uResolution'); // pegando uniforme do shader
+````
+
+````javascript
+gl.uniform2f(uResolution, gl.canvas.width, gl.canvas.height); // mudando resolução
+````
+

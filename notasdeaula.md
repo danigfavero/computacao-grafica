@@ -583,3 +583,5 @@ var uResolution = gl.getUniformLocation(program, 'uResolution'); // pegando unif
 gl.uniform2f(uResolution, gl.canvas.width, gl.canvas.height); // mudando resolução
 ````
 
+- Código dentro do diretório `shaders`
+

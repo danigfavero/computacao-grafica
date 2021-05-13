@@ -585,3 +585,24 @@ gl.uniform2f(uResolution, gl.canvas.width, gl.canvas.height); // mudando resolu�
 
 - Código dentro do diretório `shaders`
 
+### Primitivas
+
+````javascript
+var primitiveType = gl.POINTS;
+
+var primitiveType = gl.LINES;
+var primitiveType = gl.LINE_STRIP;
+
+var primitiveType = gl.TRIANGLES;
+var primitiveType = gl.TRIANGLE_FAN;
+var primitiveType = gl.TRIANGLE_STRIP;
+````
+
+- Existe algum motivo pra não existir uma primitiva retangular?
+  - 3 pontos sempre são planares
+
+#### Curvas de Hilbert
+
+![hilbert](./img/hilbert.jpg)
+
+- Rotações de 90º no sentido horário: 1 $\rightarrow$ 2 $\rightarrow$ 3 $\rightarrow$ 4 

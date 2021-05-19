@@ -40,7 +40,6 @@ const DEBUG = true;
 const ITERATIONS = 100;
 const DELTA = 4;
 const SHIFT = 16;  // código ASCII da tecla
-const R = 82;
 
 // Condições iniciais de Julia e Mandelbrot
 const CX = -0.62, CY = -0.44;
@@ -58,8 +57,8 @@ const MANDEL_T =  1.5;
 // Veja uma lista de cores em: 
 // https://www.w3schools.com/tags/ref_colornames.asp
 const CORES = [
-    'black', 'magenta', 'red',  
-    'orange', 'yellow', 'yellowgreen', 
+    'black', 'magenta', 'red',
+    'orange', 'yellow', 'yellowgreen',
     'green', 'blue', 'purple'
 ];
 
@@ -68,15 +67,22 @@ const NCORES = CORES.length;
 // Variáveis globais
 var gCanvas, gWidth, gHeight, gCtx;
 
-// outra variáveis se desejar
-var reseted = true;
+// outras variáveis se desejar
+var reseted = true; // evita calcular tudo de novo quando já estiver reseted
 var xMouseDown = yMouseDown = 0; // para o retângulo
+
+const R = 82; // código ASCII da tecla
+
+var mandelLeft = MANDEL_L;
+var mandelBottom = MANDEL_B;
+var mandelRight =  MANDEL_R;
+var mandelTop =  MANDEL_T;
 
 /*
     função main
 */
 function main() {
-    
+
     gCanvas = document.querySelector('#fractais_canvas');
     gWidth = gCanvas.width;
     gHeight = gCanvas.height/2;
@@ -86,8 +92,9 @@ function main() {
     console.log( msg );
 
     // RESTO DA SUA FUNÇÃO MAIN
-    mandelbrotWindow(0, gWidth, 0, gHeight);
-    juliaFatouWindow(0, gWidth, gHeight, gHeight*2);
+    
+    mandelbrotWindow();
+    juliaFatouWindow();
 
     document.addEventListener('keydown', e => keyDown(e));
     gCanvas.addEventListener('mousedown', e => mouseDown(e));
@@ -97,15 +104,15 @@ function main() {
 // outras funções
 
 // auxiliares
-function map(number, inMin, inMax, outMin, outMax) {
-    return (number - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+function map(number, xMin, xMax, yMin, outMax) {
+    return (number - xMin) * (outMax - yMin) / (xMax - xMin) + yMin;
 }
 
 function isInMandelbrotWindow(x, y) {
-    return x >= 0 && x < 400 && y >= 0 & y < 400;
+    return x >= 0 && x < gWidth && y >= 0 & y < gHeight;
 }
 
-// pixel-wise
+// pixel-wise fractais
 function juliaFatouPixel(a, b, cx=CX, cy=CY) {
     let iteration = 0;
 
@@ -146,44 +153,43 @@ function mandelbrotPixel(a, b) {
     return CORES[iteration % NCORES];
 }
 
-// gerador de fractais
-function juliaFatouWindow(x0, xn, y0, yn, cx=CX, cy=CY) {
-    if (DEBUG) { 
-        console.log("juliaFatouWindow(", x0, xn, y0, yn, cx, cy, ")");
-    }
+// window-wise fractais
+function juliaFatouWindow(cx=CX, cy=CY) {
+    if (DEBUG)
+        console.log("juliaFatouWindow(", cx, cy, ")");
 
-    for (let x = x0; x < xn; x++) {
-        for (let y = y0; y < yn*2; y++) {
-            let a = map(x, x0, xn, JULIA_L, JULIA_R);
-            let b = map(y, y0, yn, JULIA_B, JULIA_T);
+    for (let x = 0; x < gWidth; x++) {
+        for (let y = gHeight; y < gHeight*2; y++) {
+            let a = map(x, 0, gWidth, JULIA_L, JULIA_R);
+            let b = map(y, gHeight, gHeight*2, JULIA_B, JULIA_T);
 
             gCtx.fillStyle = juliaFatouPixel(a, b, cx, cy);
-            gCtx.fillRect(x, y, x, y);
+            gCtx.fillRect(x, y, 1, 1);
         }
     }
 }
 
-function mandelbrotWindow(x0, xn, y0, yn) {
-    if (DEBUG) { 
-        console.log("mandelbrotWindow(", x0, xn, y0, yn, ")");
-    }
+function mandelbrotWindow() {
+    if (DEBUG)
+        console.log("mandelbrotWindow(): ", mandelLeft, mandelRight, mandelTop, mandelBottom);
 
-    for (let x = x0; x < xn; x++) {
-        for (let y = y0; y < yn*2; y++) {
-            let a = map(x, x0, xn, MANDEL_L, MANDEL_R);
-            let b = map(y, y0, yn, MANDEL_T, MANDEL_B);
+    for (let x = 0; x < gWidth; x++) {
+        for (let y = 0; y < gHeight; y++) {
+            let a = map(x, 0, gWidth, mandelLeft, mandelRight);
+            let b = map(y, 0, gHeight, mandelBottom, mandelTop);
 
             gCtx.fillStyle = mandelbrotPixel(a, b);
-            gCtx.fillRect(x, y, x, y);
+            gCtx.fillRect(x, y, 1, 1);
         }
     }
 }
 
-// operações
+// operações definidas pela UI
 function setNewCForJuliaFatou(x, y) {
-    let cx = map(x, 0, gWidth, MANDEL_L, MANDEL_R);
-    let cy = map(y, 0, gHeight, MANDEL_B, MANDEL_T);
-    juliaFatouWindow(0, gWidth, gHeight, gHeight*2, cx, cy);
+    let cx = map(x, 0, gWidth, mandelLeft, mandelRight);
+    let cy = map(y, 0, gHeight, mandelBottom, mandelTop);
+
+    juliaFatouWindow(cx, cy);
 }
 
 function rectangleSelectionForMandelbrot(x0, xn, y0, yn) {
@@ -198,14 +204,27 @@ function rectangleSelectionForMandelbrot(x0, xn, y0, yn) {
         yn = tmp;
     }
 
-    //mandelbrotWindow();
+    let tmp = map(x0, 0, gWidth, mandelLeft, mandelRight);
+    let tmp2 = map(yn, 0, gHeight, mandelBottom, mandelTop);
+    mandelRight =  map(xn, 0, gWidth, mandelLeft, mandelRight);
+    mandelTop =  map(y0, 0, gHeight, mandelBottom, mandelTop);
+
+    mandelLeft = tmp;
+    mandelBottom = tmp2;
+
+    mandelbrotWindow();
 }
 
 // UI
 function keyDown(e) {
     if (e.keyCode == R && !reseted) { // reset
-        mandelbrotWindow(0, gWidth, 0, gHeight);
-        juliaFatouWindow(0, gWidth, gHeight, gHeight*2);
+        mandelLeft = MANDEL_L;
+        mandelBottom = MANDEL_B;
+        mandelRight =  MANDEL_R;
+        mandelTop =  MANDEL_T;
+
+        mandelbrotWindow();
+        juliaFatouWindow();
         reseted = true;
     }
 }

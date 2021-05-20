@@ -606,3 +606,37 @@ var primitiveType = gl.TRIANGLE_STRIP;
 ![hilbert](./img/hilbert.jpg)
 
 - Rotações de 90º no sentido horário: 1 $\rightarrow$ 2 $\rightarrow$ 3 $\rightarrow$ 4 
+
+## Animação
+
+- Código dentro do diretório `hilbert`
+
+### Displays
+
+- *Refresh rate*: 
+  - 30Hz
+  - Monitores CRT (tubo de raios catódicos)
+  - Imagem entrelaçada (campo par e campo ímpar) -> frequência da rede elétrica: 60Hz
+  - VGA: 480 linhas
+
+![animation](./img/animation.jpg)
+
+- Informação do **FRAME BUFFER** mandada para o **MONITOR**
+- 60Hz é muito rápido: podemos desenhar no Frame Buffer a 20Hz, e o monitor continuará desenhando a 60Hz (repetindo informação)
+
+### Double buffer
+
+- Para evitar que o atraso do desenho apareça
+
+- É automático
+
+- Funções a usar no WebGL:
+
+  - `setInterval(f, deltaT)`: $f$ é a função de renderização, $\Delta t$ é o tempo em *ms*
+    - Tenta manter a taxa constante
+  - `requestAnimationFrame(f)`: $f$ é a função de renderização
+    - Manda desenhar, e quando acabar ele manda outro *request*, mas não deixa a fila crescer
+    - Tenta gerar a animação o mais rápido possível 
+
+  
+

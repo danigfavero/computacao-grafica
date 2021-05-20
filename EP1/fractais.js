@@ -69,7 +69,7 @@ var gCanvas, gWidth, gHeight, gCtx;
 
 // outras variáveis se desejar
 var reseted = true; // evita calcular tudo de novo quando já estiver reseted
-var xMouseDown = yMouseDown = 0; // para o retângulo
+var [xMouseDown, yMouseDown] = [0, 0]; // para o retângulo
 
 const R = 82; // código ASCII da tecla
 

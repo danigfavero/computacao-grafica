@@ -619,7 +619,7 @@ var primitiveType = gl.TRIANGLE_STRIP;
   - Imagem entrelaçada (campo par e campo ímpar) -> frequência da rede elétrica: 60Hz
   - VGA: 480 linhas
 
-![animation](./img/animation.jpg)
+<img src="./img/animation.jpg" alt="animation" style="zoom:50%;" />
 
 - Informação do **FRAME BUFFER** mandada para o **MONITOR**
 - 60Hz é muito rápido: podemos desenhar no Frame Buffer a 20Hz, e o monitor continuará desenhando a 60Hz (repetindo informação)
@@ -638,5 +638,57 @@ var primitiveType = gl.TRIANGLE_STRIP;
     - Manda desenhar, e quando acabar ele manda outro *request*, mas não deixa a fila crescer
     - Tenta gerar a animação o mais rápido possível 
 
-  
+## Transformações
+
+- Dentro do sistema de coordenadas definido pelo canvas
+
+  <img src="./img/coordenadas.jpg" alt="coordenadas" style="zoom:33%;" />
+
+- É interessante que as transformações sejam feitas utilizando o **VAO** (vertex array object), assim o WebGL não precisa gerar várias vezes o canvas todo a cada frame: ele aplica uma transformação linear no objeto
+- Bem menos processamento computacional
+
+### Translação
+
+- Pega todos os pontos de um objeto e adiciona um $\Delta x, \Delta y$
+- $trans = [\Delta x, \Delta y]$
+
+**Vertex shader:**
+
+````cpp
+in vec2 aPosition;
+uniform vec2 uTranslation;
+
+void main() {
+    vec2 translated = aPosition + uTranslation;
+    
+}
+````
+
+### Rotação
+
+![2D Rotation in Computer Graphics | Definition | Examples | Gate Vidyalay](https://www.gatevidyalay.com/wp-content/uploads/2019/08/2D-Rotation-in-Computer-Graphics-Example.png)
+$$
+x_{new} = x \cos(\theta) + y \sin(\theta) \\
+y_{new} = - x \sin(\theta) + y \cos(\theta)
+$$
+
+- Feita com uma multiplicação linear
+
+**Vertex shader:**
+
+````cpp
+in vec2 aPosition;
+uniform vec2 uRotation; // [sin, cos]
+
+void main() {
+    vec2 rotated = vec2(
+    	  aPosition[0] * uRotation[1] + aPosition[1] * uRotation[0],
+        - aPosition[0] * uRotation[0] + aPosition[1] * uRotation[1]
+    )
+}
+````
+
+### Escala
+
+- 
 

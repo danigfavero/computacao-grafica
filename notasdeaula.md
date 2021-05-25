@@ -690,5 +690,139 @@ void main() {
 
 ### Escala
 
-- 
+**Vertex shader:**
+
+````cpp
+#version 300 es
+ 
+in vec2 a_position;
+uniform vec2 u_scale;
+ 
+void main() {
+  // Escala a posição
+  vec2 scaledPosition = a_position * u_scale;
+}
+````
+
+## Geometria e Programação Geométrica
+
+- Geometria de pontos, linhas e objetos planares no espaço 3D
+  - Pois a luz se propaga em linha reta: PROJEÇÃO
+  - Permite o uso de álgebra linear para transformar objetos
+    - Transformações podem ser representadas e manipuladas por matrizes
+    - Em particular, um triângulo é sempre planar
+- Intersecções geométricas
+- Orientação
+- Transformação
+- Mudança de coordenadas
+
+- **Programação independente de coordenadas**
+  - Pensar nos objetos, não nas matrizes e fórmulas
+  - ***Tony DeRose*** desenvolveu um método de programação geométrica independente de coordenadas, o que simplifica o raciocínio geométrio
+  - Ao invés de matrizes, utilizaremos operadores geométricos de alto nível (esses sim, implementados com matrizes)
+  - Infelizmente, ao usar *WebGL*, não conseguimos evitar a presença de matrizes
+
+### Geometria Afim
+
+**Elementos:**
+
+- escalares $\alpha$ — números reais
+- pontos $P$ — posição
+- vetores livres $\vec{v}$ — direção e magnitude
+  - o vetor é "livre" porque não depende de ponto de início e fim: ele depende apenas de direção e magnitude (não de posição)
+  - não existe conceito de origem na geometria afim
+
+**Operações básicas:**
+
+![geometria afim](img/geometria-afim.png)
+
+- Multiplicação de escalar por vetor ($\vec{u} = \alpha \vec{v}$ ou $\vec{u} = \vec{v}/\alpha$)
+- Soma de vetores ($\vec{w} = \vec{u} + \vec{v}$ ou $\vec{w} = \vec{u} - \vec{v}$ )
+- Soma de ponto com vetor ($Q = P + \vec{v}$)
+- Subtração entre dois pontos ($P - Q = \vec{v}$, com $\vec{v}$ apontando para $P$)
+- **Note que:**
+  - Não faz sentido fazer soma de pontos
+  - Não faz sentido multiplicar ponto com escalar
+
+**Combinação afim**
+
+- Existe uma combinação particular entre pontos que consideramos válida, denominada uma combinação afim
+
+- Dado dois pontos $Q$ e $P$, qual é seu ponto médio $R$?
+
+  - Ou, genericamente: qual o ponto $R$ que divide $PQ$ nas proporções $\alpha$ e $1-\alpha$, sendo $\alpha \in [0,1]$?
+
+  - Soluções
+    $$
+    R = P + \alpha (Q-P) \\
+    R = (1-\alpha)P + \alpha Q
+    $$
+     (escalar do vetor $Q-P$)
+
+- **Combinação afim de pontos**
+
+  - Dada uma sequência de pontos $P_1,P_2, \dots, P_n$, uma combinação afim é qualquer soma da forma
+    $$
+    Q = \alpha_1 P_1 + \alpha_2 P_2 + \dots + \alpha_n P_n,\ (\alpha_1 + \alpha_2 + \dots + \alpha_n = 1)
+    $$
+
+  - **Combinação convexa**: todo $\alpha_i$ está no intervalo $[0,1]$
+
+  - Todas as **combinações convexas** de $PQR$?
+
+    ![In a triangle PQR, PQ = PR and ∠Q is twice that of ∠P.](http://images.interviewmania.com/wp-content/uploads/2019/07/Ans-102.png)
+
+    (Interna ao triângulo $PQR$, incluindo as bordas)
+
+- E qual é a região definida por todas as **combinações afins** de $PQR$?
+
+  Na combinação afim podemos ter $\alpha_i<0$ ou $\alpha_i>1$
+
+![combinacao afim](img/combinacao-afim.png)
+
+- **Notação:**
+
+  Vamos tomar a liberdade de escrever $R = (P+Q)/2$ para indicar o ponto médio $R$ entre $P$ e $Q$
+
+### Geometria Euclidiana
+
+- Agora inserimos um mecanismo para tratar ângulos e distâncias
+- Extensão para produto escalar
+
+**Operações válidas com pontos e vetores:**
+
+- As mesmas da geometria afim
+- **Produto escalar $\vec{u} \cdot \vec{v} (<\vec{u} \cdot \vec{v}>)$**
+  - Em 2D: $u_0*v_0 + u_1 * v_1$
+  - Para nD: $u_1*v_1 + u_2*v_2 + \dots + u_n * v_n$ 
+  - **Propriedades:**
+    - Positividade ($\vec{u} \cdot \vec{u} \geq 0$ e $\vec{u} \cdot \vec{u} = 0 \iff u = 0$)
+    - Simetria ($\vec{u} \cdot \vec{v} = \vec{v} \cdot \vec{u}$)
+    - Bilinearidade ($\vec{u} \cdot (\vec{u}+\vec{w}) = \vec{u}\cdot\vec{v} + \vec{u}\cdot\vec{w}$ e $\vec{u}\cdot \alpha \vec{v} = \alpha \vec{u}\cdot\vec{v}$)
+
+**O produto escalar acaba inserindo outras propriedades para o espaço:**
+
+- Comprimento de um vetor ($|\vec{v}| = \sqrt{\vec{v} \cdot \vec{v}}$)
+
+-  Normalização ($\vec{v}' = \vec{v}/ |\vec{v}|$)
+
+- Distância entre dois pontos ($dist(P,Q) = |P-Q|$)
+
+- Ângulo entre dois vetores não nulos
+  $$
+  \theta = ang(\vec{u}, \vec{v}) = \cos^{-1}(\vec{u}\cdot\vec{v}/(|\vec{u}|\cdot|\vec{v}|) = \cos^{-1}(\vec{u}'\cdot\vec{v}') \\
+  \cos\theta = (\vec{u}'\cdot\vec{v}')
+  $$
+
+- **Ortogonalidade:** 
+  - Dois vetores $\vec{u},\vec{v}$ são ortogonais (perpendiculares) quando $\vec{u} \cdot \vec{v} = 0$
+  - **Projeção ortogonal**
+    
+    - dados um vetor $\vec{u}$ e um vetor não nulo $\vec{v}$, é conveniente decompor $\vec{u}$ como a soma de dois vetores $\vec{u} = \vec{u}_1 + \vec{u}_2$, onde $\vec{u}_1$ é paralelo a $\vec{v}$ e $\vec{u}_2$ é ortogonal a $\vec{v}$
+    - $\vec{u}_1 = ((\vec{u}\cdot\vec{v}) / (\vec{v}\cdot\vec{v}) )\vec{v}$ (podemos ignorar $\vec{v} \cdot \vec{v}$ se $|\vec{v}|=1$) 
+    - $\vec{u}_2 = \vec{u} - \vec{u}_1$
+    - Verifique que $\vec{u}_2$ é ortogonal a $\vec{v}$
+    - $\vec{u}_1$ é chamado de **projeção ortogonal** de $\vec{u}$ sobre $\vec{v}$
+    
+    ![projecao](img/projecao.png)
 

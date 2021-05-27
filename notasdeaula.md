@@ -826,3 +826,79 @@ void main() {
     
     ![projecao](img/projecao.png)
 
+## Objetos em Javascript
+
+- Criação da classe:
+
+````javascript
+function Coisa(prop1, prop2, ..., propN) {
+    this.prop1 = prop1;
+    this.prop2 = prop2;
+    ...
+    this.propN = propN;
+    // outras propriedades  
+};
+````
+
+- Criação de métodos:
+
+````javascript
+function Coisa(prop1, prop2, ..., propN) {
+    // atribuição das propriedades aqui
+    
+    this.metodo = function(pars) {
+    	// corpo da função
+    };
+};
+````
+
+- Exemplo: classe retângulo
+
+````javascript
+function Rect(l, b, w, h, cor) {
+    this.pt = [l, b];
+    this.w = w;
+    this.cor = cor;
+    this.h = h;
+    
+    this.desenhe = function(pos) {
+        pos.push(this.pt[0]);
+        pos.push(this.pt[1]);
+        pos.push(this.pt[0] + this.w);
+        pos.push(this.pt[1]);
+        // outros 8 vértices
+        // atribui cor
+    }
+}
+````
+
+- Exemplo: criar um conjunto de retângulos
+
+````javascript
+var gWidth = .1; // 10% do canvas
+var gHeight = .1; // 10% do canvas
+
+function crieRects(n=10, cor) {
+    var rects;
+    for (var i = 0; i<n; i++) {
+        var x = Math.random();
+        var y = Math.random();
+        
+        var r = new Rect(x, y, gWidth, gHeight, cor);
+        rects.push(r);
+    }
+    return rects;
+}
+````
+
+- Exemplo: desenhar o conjunto de retângulos
+
+````javascript
+function desenheTudo(rects, buffer) {
+    var n = rects.length;
+    for (var i = 0; i < n; i++) {
+        rects[i].desenhe(buffer);
+    }
+}
+````
+

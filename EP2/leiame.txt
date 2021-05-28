@@ -1,0 +1,32 @@
+===========================================================
+    EP2 de MAC0420/MAC5744 - Paredão
+
+    Autor: Daniela Gonzalez Favero
+    Data: 15 de junho de 2021
+    Comentários: essa solução foi baseada em ...
+===========================================================
+
+    INTRODUÇÃO
+
+O jogo
+===========================================================
+
+    HORAS DE TRABALHO
+
+Horas dedicadas por semana:
+Horas dedicadas no total:
+===========================================================
+
+    DIFICULDADES
+
+===========================================================
+
+    BUGS
+
+===========================================================
+
+    OPCIONAIS
+
+- Arquivo paredao.css para configurar algumas propriedades 
+da interface
+===========================================================

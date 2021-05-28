@@ -1,0 +1,19 @@
+/*
+    EP2 de MAC0420/MAC5744 - Paredão
+
+    Autor: Daniela Gonzalez Favero
+    Data: 15 de junho de 2021
+    Comentários: essa solução foi baseada em ...
+*/
+
+canvas {
+    border: 1px solid black;
+}
+
+.buttons {
+    margin-bottom: 1rem;
+}
+
+.sliders {
+    margin-bottom: 1rem;
+}

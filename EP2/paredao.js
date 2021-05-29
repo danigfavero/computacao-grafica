@@ -7,10 +7,16 @@
 */
 
 // Constantes
-const BG_COLOR = [0.0, 0.3, 0.0, 1.0];
-const BRICK_COLOR = [1.0, 0.0, 1.0, 1.0];
-const BALL_COLOR = [1.0, 1.0, 0.0, 1.0];
+// Cores
+const BG_COLOR     = [0.0, 0.3, 0.0, 1.0];
+const BRICK_COLOR  = [1.0, 0.0, 1.0, 1.0];
+const BALL_COLOR   = [1.0, 1.0, 0.0, 1.0];
 const RACKET_COLOR = [0.0, 0.5, 1.0, 1.0];
+
+// Dimensão da raquete
+const RACKET_X = 0.45;
+const RACKET_Y = 0.10;
+const RACKET_H = 0.01;
 
 // Variáveis globais
 var canvas, gl
@@ -18,11 +24,16 @@ var gWidth, gHeight;
 var gProgram;
 var gVao;
 
+// Sliders
 var gBallSpeed = 5;
-var gRacketSize = 5;
+var gRacketSize = 0.235;
 
+// Botões
 var gPaused = false;
 var gDebugging = false;
+
+// Estruturas
+var racket;
 
 /*
 =====================================================================
@@ -48,6 +59,29 @@ function main() {
     gProgram = makeProgram(gl, vertexShaderSrc, fragmentShaderSrc);
     gl.useProgram(gProgram);
 
+    // Gera raquete
+    racket = generateRacket();
+
+    // Cria o gVao e diz para usar os dados do buffer
+    gVao = gl.createVertexArray();
+    gl.bindVertexArray(gVao);
+
+    // Cria o buffer para mandar os dados para a GPU
+    var bufferPosicoes = gl.createBuffer();
+    var jsaPosition  = gl.getAttribLocation(gProgram, "aPosition");
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferPosicoes );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(racket), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(jsaPosition);
+    gl.vertexAttribPointer(jsaPosition, 2, gl.FLOAT, false, 0, 0);
+
+    // Viewport, tamanho da janela e cor de fundo
+    var jsuResolution = gl.getUniformLocation(gProgram, "uResolution");
+    gl.viewport(0, 0, gWidth, gHeight);
+    gl.uniform2f(jsuResolution, gWidth, gHeight);
+    gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], BG_COLOR[3]);
+    var jsuRacketColor = gl.getUniformLocation(gProgram, "uRacketColor");
+    gl.uniform4fv(jsuRacketColor, RACKET_COLOR);
+
     // Botões
     document.getElementById("play").onclick = playOrPauseButton;
     document.getElementById("debug").onclick = debugOrPlayButton;
@@ -58,7 +92,9 @@ function main() {
     document.getElementById("racketSize").onchange = updateRacketSize;
 
     // Animação
-    setInterval(render, 50);
+    // setInterval(render, 50);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, racket.length/2);
 }
 
 // Função de renderização da animação
@@ -71,7 +107,7 @@ function render() {
     // gRotation = [ Math.sin(ang), Math.cos(ang) ];
     // gl.uniform2fv(guRotation, gRotation);
 
-    // gl.drawArrays(gl.TRIANGLES, 0, pacman.length/2 );
+    gl.drawArrays(gl.TRIANGLES, 0, racket.length/2);
 }
 
 /*
@@ -132,80 +168,48 @@ function clearButton(e) {
 // Shaders
 // ---------------------------------------------------
 // vertex shader
-var vertexShaderSrc = `#version 300 es 
-// atributos
+var vertexShaderSrc = `#version 300 es
+
 in vec2 aPosition;
-// Uniformes
-uniform vec2 uResolucao;
-
-// Vetor de Translacao;
-uniform vec2 uTranslation;
-
-// Parametros de rotacao
-uniform vec2 uRotation;
-
-// Parametros de escala
-uniform vec2 uScale;
+uniform vec2 uResolution;
 
 void main() {
-    vec2 scaled = aPosition * uScale;
-
-    vec2 rotated = vec2(
-        scaled.x * uRotation.y + scaled.y * uRotation.x,
-        scaled.y * uRotation.y - scaled.x * uRotation.x);
-
-    vec2 position = rotated + uTranslation;
-
-    // converte pixel para [-1.0,+1.0]
-    vec2 zeroToOne = position / uResolucao;
-    vec2 zeroToTwo = zeroToOne * 2.0;
-    vec2 clipSpace = zeroToTwo - 1.0;
-    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    vec2 normalized = aPosition * 2.0 - 1.0;
+    gl_Position = vec4(normalized, 0, 1);
 }
 `;
 
 // fragment shader
 var fragmentShaderSrc = `#version 300 es
-//
 precision highp float;
 
 out vec4 outColor;
-uniform vec4 uColor;
+uniform vec4 uRacketColor;
 
 void main() {
-  outColor = uColor;
+    outColor = uRacketColor;
 }
 `;
 
 // ---------------------------------------------------
+
 /*
-    Gera Pacman
-    centro: (cx, cy)
-    r -> raio
-    n -> numero de pontos
 */
+function generateRacket() {
+// vai retornar um Float32Array pra usar no buffer
+    var topLeft     = [RACKET_X,               RACKET_Y];
+    var topRight    = [RACKET_X + gRacketSize, RACKET_Y];
+    var bottomLeft  = [RACKET_X,               RACKET_Y + RACKET_H];
+    var bottomRight = [RACKET_X + gRacketSize, RACKET_Y + RACKET_H];
 
-function geraPacman(raio, n) {
-    var pontos = [];
-    const cx = 0;
-    const cy = 0;
-    var delta = 2*Math.PI / n;
+    var racketPoints = [
+        topLeft[0],     topLeft[1],
+        topRight[0],    topRight[1],
+        bottomLeft[0],  bottomLeft[1],
 
-    var a = delta;
-    var px = Math.floor(Math.cos(a)*raio + cx);
-    var py = Math.floor(Math.sin(a)*raio + cy);
-    
-    for (var i=1; i<n-1; ++i) {
-        pontos.push(cx);
-        pontos.push(cy);
-        pontos.push(px);
-        pontos.push(py);
-        a += delta;
-        px = Math.floor(Math.cos(a)*raio + cx);
-        py = Math.floor(Math.sin(a)*raio + cy);
-        pontos.push(px);
-        pontos.push(py);
-        //console.log(i, a, Math.cos(a), Math.sin(a))
-    };
-    return pontos ;
-};
+        bottomRight[0], bottomRight[1],
+        topRight[0],    topRight[1],
+        bottomLeft[0],  bottomLeft[1]
+    ];
+    return racketPoints;
+}

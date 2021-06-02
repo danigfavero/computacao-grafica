@@ -902,3 +902,164 @@ function desenheTudo(rects, buffer) {
 }
 ````
 
+## *Frame* de coordenadas e coordenadas homogêneas
+
+- Como representar pontos e vetores com geometria afim?
+
+### Da álgebra linear...
+
+- Combinação linear de vetores
+
+- Base vetorial em nD: n vetores linearmente independentes
+
+- Em 3D, devemos usar 3 vetores linearmente independentes $e_x, e_y, e_z$
+
+- Qualquer vetor $v$ pode ser escrito como: $v = a_0 e_x + a_1 e_y + a_2 e_z$
+
+- A base mais comum utiliza vetores unitários ortogonais entre si :
+  $$
+  e_x = (1, 0, 0)^T, e_y = (0, 1, 0)^T, e_z = (0, 0, 1)^T 
+  $$
+  (base ortonormal)
+
+- Os vetores da base são chamados de vetores de coordenadas, e a triple $(a_0, a_1, a_2)$ define a coordenada cartesiana do vetor $v$
+
+- Porém, 3 vetores apenas não são suficientes para determinar a posição de um ponto
+
+  - É necessário definirmos uma **origem** $O$ para o sistema de coordenadas
+
+### *Frame* de coordenadas
+
+- Em um espaço afim, precisamos de uma forma de representar pontos além de vetores
+
+- Um frame de coordendas em um espaço afim d-dimensional será definido por um conjunto de $d$ vetores linearmente independentes e um ponto de origem $\mathcal{O}$
+
+- Assim, um ponto $P$ em 3D pode ser representado assim:Generalização:
+  $$
+  P = a_0u_0 + a_1u_1 + a_2u_2 + \mathcal{O}
+  $$
+
+### Coordenadas homogêneas
+
+- Representar pontos e vetores como uma **lista de escalares**
+- Para um espaço d-dimensional, utilizaremos vetores de comprimento d+1
+  - pontos tem a última coordenada = 1
+  - vetores tem a última coordenada = 0
+- Esse tipo de representação é denominado **coordenadas homogêneas** de um ponto ou vetor relativo a um frame $F$
+
+### Axioma de coordenada
+
+Para cada ponto $P$ no espaço afim temos:
+
+- $0 * P =$ vetor nulo 0
+- $1 * P = $ P
+
+**Atenção!** O termo vetor pode ser usado como
+
+- vetor livre 
+- vetor de coordenadas
+
+### Propriedades das coordenadas homogêneas
+
+A escolha de 1 e 0 para ponto e vetor **não é arbitrária**:
+
+- $v = P-Q$: a última coordenada se cancela
+- seja $U$ e $V$ pontos ou vetores, após várias operações da forma $U-V$, $U+V$ ou $aU$:
+  - se a última coordenada = 0: vetor
+  - se a última coordenada = 1: ponto
+  - caso contrário, não é uma operação afim válida
+- Isso permite grande flexibilidade, como combinações do tipo:
+  - centroide = $(P+Q+R)/3$ (centro de massa)
+  - agora podemos fazer soma de pontos — e dar significados a eles
+
+### Sistemas de coordenadas alternativos
+
+**Objetivos conflitantes:**
+
+1. pontos e vetores representados com respeito a algum sistema **universal** de coordenadas, permite trabalhar com pontos e vetores simplesmente modificando suas coordenadas
+2. representar pontos de acordo com um sistema de coordenadas **local**
+
+**Convenção:** sistema de coordenadas universal
+
+- *Frame* padrão fixo, ortonormal: $e_0, e_1, e_1, O$
+
+### Mudança de coordenadas
+
+**Exemplo:**
+
+<img>
+$$
+P[F] = \begin{bmatrix} 3 \\ 2 \\ 1 \end{bmatrix},\ 
+P[G] = \begin{bmatrix} 1 \\ 2 \\ 1 \end{bmatrix}
+$$
+Transformação $M$
+
+Sabemos que $P = \beta_0 G e_0 + \beta_1 G e_1 + \beta_2 G e_2$
+
+Queremos $P = \beta_0 G e_0[F] + \beta_1 G e_1[F] + \beta_2 G e_2[F]$:
+$$
+G e_0[F] = (-2, -1, 0)^T = (g_{00}, g_{01}, 0)^T \\
+G e_1[F] = (0, 1, 0)^T = (g_{10}, g_{11}, 0)^T \\
+G e_2[F] = (5, 1, 1)^T = (g_{20}, g_{21}, 1)^T
+$$
+Portanto...
+$$
+P = \beta_0 \begin{bmatrix} -2 \\ -1 \\ 0 \end{bmatrix} + \beta_1 \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} + \beta_2 \begin{bmatrix} 5 \\ 1 \\ 1 \end{bmatrix}
+$$
+Do sistema linear, temos:
+$$
+\underbrace{\begin{bmatrix} -2 & 0 & 5\\ -1 & 1 & 1 \\ 0 & 0 & 1 \end{bmatrix}}_{M}
+\underbrace{\begin{bmatrix} \beta_0 \\ \beta_1 \\ \beta_2 \end{bmatrix}}_{P[G]}
+$$
+**Generalização:**
+$$
+M = (G e_0 [F] | G e_1 [F] | G O [F]) \\
+P[F] = M P[G] \\
+P[G] = M^{-1} P[F] 
+$$
+
+- $M$ é sempre inversível
+
+## Desenhando múltiplos objetos
+
+**Como desenhar um objeto em WebGL?**
+
+1. criar os *shaders*: *vertex* e *fragment*
+2. criar os vértices do objeto
+   - VAO: mantém a estrutura
+3. definir os *uniform*'s
+4. desenhar (rodar a estrutura no *pipeline*)
+
+### Como desenhar múltiplos objetos?
+
+Rodar o *pipeline* para cada objeto
+
+Vamos assumir que:
+
+- a geometria de cada objeto não se altera
+- a cor de cada objeto pode ser definida por um *uniform*
+
+Então, para cada objeto `obj`:
+
+- `gl.useProgram(obj.program)`
+- `gl.bindVertexArray(obj.vao)`
+- `gl.uniform4fv(obj.uCor, [1.0, 0.5, 0.0, 1.0])`
+- setar outros *uniform*'s como a transformação
+
+### Como animar múltiplos objetos?
+
+É necessário simular alguma interação entre objetos antes de desenhá-los
+
+Exemplo de bola que destrói blocos:
+
+- atualize a posição da bola
+- veja se a bola bateu em um bloco
+  - atualize (remova) o bloco — a geometria muda, então vai ser necessário redefinir os vértices renderizados
+  - atualize a bola
+
+Depois desenhamos. Para cada objeto `obj`:
+
+- `gl.useProgram(obj.program)`
+- `gl.bindVertexArray(obj.vao)`
+- `gl.uniform4fv(obj.uCor, [1.0, 0.5, 0.0, 1.0])`
+- setar outros *uniform*'s como a transformação

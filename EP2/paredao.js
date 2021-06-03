@@ -6,17 +6,25 @@
     Comentários: essa solução foi baseada em ...
 */
 
-// Constantes
+// Valores ASCII
+const A = 65;
+const D = 68;
+const J = 74;
+const K = 75;
+const L = 76;
+const S = 83;
+
 // Cores
 const BG_COLOR     = [0.0, 0.3, 0.0, 1.0];
 const BRICK_COLOR  = [1.0, 0.0, 1.0, 1.0];
 const BALL_COLOR   = [1.0, 1.0, 0.0, 1.0];
-const RACKET_COLOR = [0.0, 0.5, 1.0, 1.0];
 
-// Dimensão da raquete
-const RACKET_X = 0.45;
-const RACKET_Y = 0.10;
-const RACKET_H = 0.01;
+// Raquete
+const RACKET_SPEED = 0.02;
+const RACKET_SIZE = 0.235;
+
+// Animação
+const ANIMATION_STEP = 1.0;
 
 // Variáveis globais
 var canvas, gl
@@ -25,15 +33,17 @@ var gProgram;
 var gVao;
 
 // Sliders
-var gBallSpeed = 5;
+var gBallSpeed = 0.05;
 var gRacketSize = 0.235;
 
 // Botões
 var gPaused = false;
-var gDebugging = false;
+var gDebugging = true;
 
 // Estruturas
-var racket;
+var gStructures = [];
+var gRacket;
+
 
 /*
 =====================================================================
@@ -59,28 +69,12 @@ function main() {
     gProgram = makeProgram(gl, vertexShaderSrc, fragmentShaderSrc);
     gl.useProgram(gProgram);
 
-    // Gera raquete
-    racket = generateRacket();
-
-    // Cria o gVao e diz para usar os dados do buffer
-    gVao = gl.createVertexArray();
-    gl.bindVertexArray(gVao);
-
-    // Cria o buffer para mandar os dados para a GPU
-    var bufferPosicoes = gl.createBuffer();
-    var jsaPosition  = gl.getAttribLocation(gProgram, "aPosition");
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferPosicoes );
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(racket), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(jsaPosition);
-    gl.vertexAttribPointer(jsaPosition, 2, gl.FLOAT, false, 0, 0);
-
     // Viewport, tamanho da janela e cor de fundo
-    var jsuResolution = gl.getUniformLocation(gProgram, "uResolution");
     gl.viewport(0, 0, gWidth, gHeight);
-    gl.uniform2f(jsuResolution, gWidth, gHeight);
     gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], BG_COLOR[3]);
-    var jsuRacketColor = gl.getUniformLocation(gProgram, "uRacketColor");
-    gl.uniform4fv(jsuRacketColor, RACKET_COLOR);
+
+    // Gera raquete
+    generateRacket();
 
     // Botões
     document.getElementById("play").onclick = playOrPauseButton;
@@ -91,23 +85,28 @@ function main() {
     document.getElementById("ballSpeed").onchange = updateBallSpeed;
     document.getElementById("racketSize").onchange = updateRacketSize;
 
-    // Animação
+    // Controle da raquete
+    document.addEventListener('keydown', e => keyDown(e));
+
+    // Desenha
+    render();
     // setInterval(render, 50);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, racket.length/2);
 }
 
 // Função de renderização da animação
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.bindVertexArray(gVao);
+    
+    updateRacketPosition();
 
-    // Roda o pacman
-    // ang += delta;
-    // gRotation = [ Math.sin(ang), Math.cos(ang) ];
-    // gl.uniform2fv(guRotation, gRotation);
+    gl.useProgram(gProgram);
 
-    gl.drawArrays(gl.TRIANGLES, 0, racket.length/2);
+    gTranslation = [gRacket.vx, 0];
+    gl.uniform2fv(gRacket.trans, gTranslation);
+
+    gl.uniform4f(gRacket.color, gRacket.rgba[0],
+        gRacket.rgba[1], gRacket.rgba[2], gRacket.rgba[3]);
+    gl.drawArrays(gl.TRIANGLES, 0, gRacket.length/2);
 }
 
 /*
@@ -126,13 +125,12 @@ function updateBallSpeed(e) {
 }
 
 function updateRacketSize(e) {
-    gRacketSize = e.target.value;
-    if (gDebugging) console.log("Tamanho da raquete: ", gRacketSize);
-    // Set the translation.
-    // gl.uniform2fv(guTranslation, gTranslation);
-    // render(); 
+    let newW = parseFloat(e.target.value);
+    generateRacket(newW);
+    render();
+    if (gDebugging) console.log("Novo tamanho da raquete:", gRacket.w);
 }
-// Botões: 
+
 function playOrPauseButton(e) {
     var playPauseText = e.target.innerHTML;
     
@@ -163,6 +161,20 @@ function clearButton(e) {
     if (gDebugging) console.log("Limpando...");
 }
 
+// Controle da Raquete
+function keyDown(e) {
+    if (gDebugging) console.log("Tecla pressionada: ", e.key);
+
+    if (e.keyCode == A || e.keyCode == J) { // esquerda
+        gRacket.vx = - RACKET_SPEED;
+    } else if (e.keyCode == S || e.keyCode == K) { // para
+        gRacket.vx = 0.0;
+    } else if (e.keyCode == D || e.keyCode == L) { // direita
+        gRacket.vx = RACKET_SPEED;
+    }
+    if (gDebugging) console.log("Velocidade da raquete: ", gRacket.vx);
+}
+
 // ---------------------------------------------------
 // ---------------------------------------------------
 // Shaders
@@ -171,11 +183,13 @@ function clearButton(e) {
 var vertexShaderSrc = `#version 300 es
 
 in vec2 aPosition;
-uniform vec2 uResolution;
+
+uniform vec2 uTranslation;
 
 void main() {
     vec2 normalized = aPosition * 2.0 - 1.0;
-    gl_Position = vec4(normalized, 0, 1);
+    vec2 translated = normalized + uTranslation;
+    gl_Position = vec4(translated, 0, 1);
 }
 `;
 
@@ -184,10 +198,10 @@ var fragmentShaderSrc = `#version 300 es
 precision highp float;
 
 out vec4 outColor;
-uniform vec4 uRacketColor;
+uniform vec4 uColor;
 
 void main() {
-    outColor = uRacketColor;
+    outColor = uColor;
 }
 `;
 
@@ -195,21 +209,85 @@ void main() {
 
 /*
 */
-function generateRacket() {
-// vai retornar um Float32Array pra usar no buffer
-    var topLeft     = [RACKET_X,               RACKET_Y];
-    var topRight    = [RACKET_X + gRacketSize, RACKET_Y];
-    var bottomLeft  = [RACKET_X,               RACKET_Y + RACKET_H];
-    var bottomRight = [RACKET_X + gRacketSize, RACKET_Y + RACKET_H];
+function Racket(w) {
+    this.x = 0.45;
+    this.y = 0.10;
+    this.h = 0.01;
+    this.w = w;
 
-    var racketPoints = [
-        topLeft[0],     topLeft[1],
-        topRight[0],    topRight[1],
-        bottomLeft[0],  bottomLeft[1],
+    this.rgba = [0.0, 0.5, 1.0, 1.0];
 
-        bottomRight[0], bottomRight[1],
-        topRight[0],    topRight[1],
-        bottomLeft[0],  bottomLeft[1]
-    ];
-    return racketPoints;
+
+    // velocidade
+    this.vx = 0.0;
+
+    // this.vao será criado no initRacket
+}
+
+// inicializa rect com VAO e Uniforms
+function initRacket(racket) {
+
+    var positions = rectGeometry(racket);
+
+    // Cria o vao e diz para usar os dados do buffer
+    racket.vao = gl.createVertexArray();
+    gl.bindVertexArray(racket.vao);
+
+    // Cria o buffer para mandar os dados para a GPU
+    var bufferPositions = gl.createBuffer();
+    var aPosition  = gl.getAttribLocation(gProgram, "aPosition");
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferPositions);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    racket.color     = gl.getUniformLocation(gProgram, "uColor");
+    racket.trans     = gl.getUniformLocation(gProgram, "uTranslation");
+}
+
+// Geometria do retângulo
+// função obtida do material de aula
+function rectGeometry(rect) {
+    var pos = [];
+
+    var l = rect.x;
+    var b = rect.y;
+    var w = rect.w;
+    var h = rect.h;
+    var r = l + w;
+    var t = b + h;
+
+    // triangulo inferior
+    pos.push(l);
+    pos.push(b);
+    pos.push(r);
+    pos.push(b);
+    pos.push(r);
+    pos.push(t);
+    // triangulo superior
+    pos.push(l);
+    pos.push(b);
+    pos.push(l);
+    pos.push(t);
+    pos.push(r);
+    pos.push(t);
+    
+    rect.length = pos.length;
+    return pos;
+}
+
+function generateRacket(w=RACKET_SIZE) {
+    gRacket = new Racket(w);
+    if (gDebugging) console.log("Raquete criada: ", gRacket);
+    initRacket(gRacket);
+}
+
+// atualize a posição da raquete
+function updateRacketPosition() {
+    gRacket.x += gRacket.vx * ANIMATION_STEP;
+    if (gRacket.x < 0 || gRacket.x + gRacket.w > 1) {
+        gRacket.vx *= -1;
+    }
+
+    //if (gDebugging) console.log("Atualize raquete: ", gRacket.x);
 }

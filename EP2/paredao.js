@@ -30,11 +30,11 @@ const RACKET_MIN_SIZE = 0.03;
 const RACKET_SPEED    = 0.02;
 
 // Bolinha
-const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2;
+const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2 - 0.2; //FIXME
 const BALL_Y         = RACKET_Y + RACKET_H;
 const BALL_SIDE      = 0.02;
-const BALL_SPEED     = 0.05;
 const BALL_MIN_SPEED = 0.01;
+var gBallSpeed     = 0.05;
 
 // Tijolos
 const BRICK_W   = 0.098;
@@ -50,8 +50,8 @@ var canvas, gl;
 var gProgram;
 
 // Botões
-var gPaused = false;
-var gDebugging = true;
+var gPaused = true;
+var gDebugging = false;
 
 // Estruturas
 var gStructures = [];
@@ -86,8 +86,9 @@ function main() {
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], BG_COLOR[3]);
 
-    // Gera raquete
+    // Gera estruturas do jogo
     generateRacket();
+    generateBall();
 
     // Botões
     document.getElementById("play").onclick = playOrPauseButton;
@@ -103,7 +104,7 @@ function main() {
 
     // Desenha
     render();
-    if (playing()) {
+    if (!gDebugging) {
         setInterval(render, 200);
     }
 }
@@ -113,10 +114,12 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     updateRacketPosition();
+    updateBallPosition();
 
     gl.useProgram(gProgram);
-    gl.bindVertexArray(gRacket.vao);
 
+    // Renderiza raquete
+    gl.bindVertexArray(gRacket.vao);
     var translation = [2.0 * gRacket.x - 1.0, 2.0 * gRacket.y - 1.0];
     gl.uniform2fv(gRacket.trans, translation);
     var scaling = [2.0, 2.0];
@@ -130,7 +133,23 @@ function render() {
         gRacket.rgba[3]
     );
     gl.drawArrays(gl.TRIANGLES, 0, gRacket.length/2);
-    // if (gDebugging) console.log("racket", gRacket.x, gRacket.y);
+
+    // Renderiza bolinha
+    gl.bindVertexArray(gBall.vao);
+    var translation = [2.0 * gBall.x - 1.0, 2.0 * gBall.y - 1.0];
+    gl.uniform2fv(gBall.trans, translation);
+    var scaling = [2.0, 2.0];
+    gl.uniform2fv(gBall.scale, scaling);
+
+    gl.uniform4f(
+        gBall.color,
+        gBall.rgba[0],
+        gBall.rgba[1],
+        gBall.rgba[2],
+        gBall.rgba[3]
+    );
+    gl.drawArrays(gl.TRIANGLES, 0, gBall.length/2);
+
 }
 
 /*
@@ -154,14 +173,19 @@ function updateRacketSize(e) {
 function playOrPauseButton(e) {
     var playPauseText = e.target.innerHTML;
     
-    if (playPauseText == "Jogar") {
+    if (playPauseText == "Jogar") { // começa o jogo
         e.target.innerHTML = "Pausar";
-        gPaused = true;
-        render();
-    } else {
-        e.target.innerHTML = "Jogar";
         gPaused = false;
+        gBall.vx = gBallSpeed;
+        gBall.vy = gBallSpeed;
         setInterval(render, 200);
+    } else { // pausa o jogo
+        e.target.innerHTML = "Jogar";
+        gPaused = true;
+        gBall.vx = 0;
+        gBall.vy = 0;
+        render();
+       
     }
     if (gDebugging) console.log("Jogo pausado? ", gPaused);
 }
@@ -205,10 +229,13 @@ function keyDown(e) {
     }
 }
 
-// ---------------------------------------------------
-// ---------------------------------------------------
-// Shaders
-// ---------------------------------------------------
+
+/*
+=================================================================
+    Shaders
+    Funções obtidas do material de aula
+=================================================================
+*/
 // vertex shader
 var vertexShaderSrc = `#version 300 es
 
@@ -236,9 +263,11 @@ void main() {
 }
 `;
 
-// ---------------------------------------------------
 /*
+=================================================================
     Retângulo: definição da geometria e bindings para o shader
+    Funções obtidas do material de aula
+=================================================================
 */
 
 // inicializa rect com VAO e Uniforms
@@ -264,7 +293,6 @@ function initRect(rect) {
 }
 
 // Geometria do retângulo
-// função obtida do material de aula
 function rectGeometry(rect) {
     var pos = [];
 
@@ -294,9 +322,10 @@ function rectGeometry(rect) {
     return pos;
 }
 
-// ---------------------------------------------------
 /*
+=================================================================
     Raquete
+=================================================================
 */
 
 // classe Raquete
@@ -327,9 +356,10 @@ function updateRacketPosition() {
     //if (gDebugging) console.log("Atualize raquete: ", gRacket.x);
 }
 
-// ---------------------------------------------------
 /*
+=================================================================
     Bolinha
+=================================================================
 */
 
 // classe Bolinha
@@ -366,9 +396,10 @@ function updateBallPosition() {
     // if (gDebugging) console.log("Atualize bolinha: ", gBall.x, gBall.y);
 }
 
-// ---------------------------------------------------
 /*
+=================================================================
     Tijolos
+=================================================================
 */
 
 // classe Tijolo
@@ -392,9 +423,10 @@ function generateBricks(n) {
 }
 
 
-// ---------------------------------------------------
 /*
+=================================================================
     Funções auxiliares
+=================================================================
 */
 function playing() {
     return !gDebugging && !gPaused;

@@ -13,28 +13,41 @@ const J = 74;
 const K = 75;
 const L = 76;
 const S = 83;
+const KEYS = [A, D, J, K, L, S];
 
 // Cores
 const BG_COLOR     = [0.0, 0.3, 0.0, 1.0];
 const BRICK_COLOR  = [1.0, 0.0, 1.0, 1.0];
 const BALL_COLOR   = [1.0, 1.0, 0.0, 1.0];
+const RACKET_COLOR = [0.0, 0.5, 1.0, 1.0];
 
 // Raquete
-const RACKET_SPEED = 0.02;
-const RACKET_SIZE = 0.235;
+const RACKET_X        = 0.45;
+const RACKET_Y        = 0.10;
+const RACKET_H        = 0.01;
+const RACKET_SIZE     = 0.235;
+const RACKET_MIN_SIZE = 0.03;
+const RACKET_SPEED    = 0.02;
+
+// Bolinha
+const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2;
+const BALL_Y         = RACKET_Y + RACKET_H;
+const BALL_SIDE      = 0.02;
+const BALL_SPEED     = 0.05;
+const BALL_MIN_SPEED = 0.01;
+
+// Tijolos
+const BRICK_W   = 0.098;
+const BRICK_H   = 0.048;
+const N_ROWS    = 5;
+const N_COLS    = 10;
 
 // Animação
 const ANIMATION_STEP = 1.0;
 
 // Variáveis globais
-var canvas, gl
-var gWidth, gHeight;
+var canvas, gl;
 var gProgram;
-var gVao;
-
-// Sliders
-var gBallSpeed = 0.05;
-var gRacketSize = 0.235;
 
 // Botões
 var gPaused = false;
@@ -43,6 +56,8 @@ var gDebugging = true;
 // Estruturas
 var gStructures = [];
 var gRacket;
+var gBall;
+var gBricks = [];
 
 
 /*
@@ -56,10 +71,8 @@ window.onload = main;
 function main() {
     // Cria canvas
     canvas = document.getElementById("glCanvas");
-    gWidth = canvas.width;
-    gHeight = canvas.height;
-
-    if (gDebugging) console.log(`Canvas tem tamanho ${gWidth} x ${gHeight}`);
+    if (gDebugging)
+        console.log(`Canvas tem tamanho ${canvas.width} x ${canvas.height}`);
 
     // Cria o contexto do WebGL
     gl = canvas.getContext('webgl2');
@@ -70,7 +83,7 @@ function main() {
     gl.useProgram(gProgram);
 
     // Viewport, tamanho da janela e cor de fundo
-    gl.viewport(0, 0, gWidth, gHeight);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], BG_COLOR[3]);
 
     // Gera raquete
@@ -90,7 +103,9 @@ function main() {
 
     // Desenha
     render();
-    // setInterval(render, 50);
+    if (playing()) {
+        setInterval(render, 200);
+    }
 }
 
 // Função de renderização da animação
@@ -100,13 +115,22 @@ function render() {
     updateRacketPosition();
 
     gl.useProgram(gProgram);
+    gl.bindVertexArray(gRacket.vao);
 
-    gTranslation = [gRacket.vx, 0];
-    gl.uniform2fv(gRacket.trans, gTranslation);
+    var translation = [2.0 * gRacket.x - 1.0, 2.0 * gRacket.y - 1.0];
+    gl.uniform2fv(gRacket.trans, translation);
+    var scaling = [2.0, 2.0];
+    gl.uniform2fv(gRacket.scale, scaling);
 
-    gl.uniform4f(gRacket.color, gRacket.rgba[0],
-        gRacket.rgba[1], gRacket.rgba[2], gRacket.rgba[3]);
+    gl.uniform4f(
+        gRacket.color,
+        gRacket.rgba[0],
+        gRacket.rgba[1],
+        gRacket.rgba[2],
+        gRacket.rgba[3]
+    );
     gl.drawArrays(gl.TRIANGLES, 0, gRacket.length/2);
+    // if (gDebugging) console.log("racket", gRacket.x, gRacket.y);
 }
 
 /*
@@ -119,15 +143,11 @@ function render() {
 function updateBallSpeed(e) {
     gBallSpeed = e.target.value;
     if (gDebugging) console.log("Velocidade da bola: ", gBallSpeed);
-    // Set the translation.
-    // gl.uniform2fv(guTranslation, gTranslation);
-    // render(); desnecessário devido a animação
 }
 
 function updateRacketSize(e) {
-    let newW = parseFloat(e.target.value);
+    var newW = parseFloat(e.target.value);
     generateRacket(newW);
-    render();
     if (gDebugging) console.log("Novo tamanho da raquete:", gRacket.w);
 }
 
@@ -137,9 +157,11 @@ function playOrPauseButton(e) {
     if (playPauseText == "Jogar") {
         e.target.innerHTML = "Pausar";
         gPaused = true;
+        render();
     } else {
         e.target.innerHTML = "Jogar";
         gPaused = false;
+        setInterval(render, 200);
     }
     if (gDebugging) console.log("Jogo pausado? ", gPaused);
 }
@@ -153,6 +175,7 @@ function debugOrPlayButton(e) {
     } else {
         e.target.innerHTML = "Depurar";
         gDebugging = false;
+        setInterval(render, 200);
     }
     if (gDebugging) console.log("MODO DEBUG");
 }
@@ -163,16 +186,23 @@ function clearButton(e) {
 
 // Controle da Raquete
 function keyDown(e) {
-    if (gDebugging) console.log("Tecla pressionada: ", e.key);
+    var key = e.keyCode;
+    if (!KEYS.includes(key)) return;
 
-    if (e.keyCode == A || e.keyCode == J) { // esquerda
+    if (key == A || key == J) { // esquerda
         gRacket.vx = - RACKET_SPEED;
-    } else if (e.keyCode == S || e.keyCode == K) { // para
+    } else if (key == S || key == K) { // para
         gRacket.vx = 0.0;
-    } else if (e.keyCode == D || e.keyCode == L) { // direita
+    } else if (key == D || key == L) { // direita
         gRacket.vx = RACKET_SPEED;
     }
-    if (gDebugging) console.log("Velocidade da raquete: ", gRacket.vx);
+
+    if (gDebugging) {
+        console.log("Tecla pressionada: ", e.key);
+        console.log("Velocidade da raquete: ", gRacket.vx);
+
+        render();
+    }
 }
 
 // ---------------------------------------------------
@@ -185,10 +215,11 @@ var vertexShaderSrc = `#version 300 es
 in vec2 aPosition;
 
 uniform vec2 uTranslation;
+uniform vec2 uScale;
 
 void main() {
-    vec2 normalized = aPosition * 2.0 - 1.0;
-    vec2 translated = normalized + uTranslation;
+    vec2 scaled = aPosition * uScale;
+    vec2 translated = scaled + uTranslation;
     gl_Position = vec4(translated, 0, 1);
 }
 `;
@@ -206,32 +237,18 @@ void main() {
 `;
 
 // ---------------------------------------------------
-
 /*
+    Retângulo: definição da geometria e bindings para o shader
 */
-function Racket(w) {
-    this.x = 0.45;
-    this.y = 0.10;
-    this.h = 0.01;
-    this.w = w;
-
-    this.rgba = [0.0, 0.5, 1.0, 1.0];
-
-
-    // velocidade
-    this.vx = 0.0;
-
-    // this.vao será criado no initRacket
-}
 
 // inicializa rect com VAO e Uniforms
-function initRacket(racket) {
+function initRect(rect) {
 
-    var positions = rectGeometry(racket);
+    var positions = rectGeometry(rect);
 
     // Cria o vao e diz para usar os dados do buffer
-    racket.vao = gl.createVertexArray();
-    gl.bindVertexArray(racket.vao);
+    rect.vao = gl.createVertexArray();
+    gl.bindVertexArray(rect.vao);
 
     // Cria o buffer para mandar os dados para a GPU
     var bufferPositions = gl.createBuffer();
@@ -241,8 +258,9 @@ function initRacket(racket) {
     gl.enableVertexAttribArray(aPosition);
     gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 
-    racket.color     = gl.getUniformLocation(gProgram, "uColor");
-    racket.trans     = gl.getUniformLocation(gProgram, "uTranslation");
+    rect.color     = gl.getUniformLocation(gProgram, "uColor");
+    rect.trans     = gl.getUniformLocation(gProgram, "uTranslation");
+    rect.scale     = gl.getUniformLocation(gProgram, "uScale");
 }
 
 // Geometria do retângulo
@@ -276,18 +294,108 @@ function rectGeometry(rect) {
     return pos;
 }
 
+// ---------------------------------------------------
+/*
+    Raquete
+*/
+
+// classe Raquete
+function Racket(w) {
+    this.x = RACKET_X;
+    this.y = RACKET_Y;
+    this.h = RACKET_H;
+    this.w = w;
+
+    this.rgba = RACKET_COLOR;
+    this.vx = 0.0;
+}
+
+// cria raquete
 function generateRacket(w=RACKET_SIZE) {
     gRacket = new Racket(w);
     if (gDebugging) console.log("Raquete criada: ", gRacket);
-    initRacket(gRacket);
+    initRect(gRacket);
 }
 
 // atualize a posição da raquete
 function updateRacketPosition() {
     gRacket.x += gRacket.vx * ANIMATION_STEP;
     if (gRacket.x < 0 || gRacket.x + gRacket.w > 1) {
-        gRacket.vx *= -1;
+        gRacket.vx = 0;
     }
 
     //if (gDebugging) console.log("Atualize raquete: ", gRacket.x);
+}
+
+// ---------------------------------------------------
+/*
+    Bolinha
+*/
+
+// classe Bolinha
+function Ball() {
+    this.x = BALL_X;
+    this.y = BALL_Y;
+    this.h = BALL_SIDE;
+    this.w = BALL_SIDE;
+
+    this.rgba = BALL_COLOR;
+    this.vx = 0.0;
+    this.vy = 0.0;
+}
+
+// cria bolinha
+function generateBall() {
+    gBall = new Ball();
+    if (gDebugging) console.log("Bolinha criada: ", gBall);
+    initRect(gBall);
+}
+
+// atualize a posição da bolinha
+function updateBallPosition() {
+    gBall.x += gBall.vx * ANIMATION_STEP;
+    if (gBall.x < 0 || gBall.x + gBall.w > 1) {
+        gBall.vx *= -1;
+    }
+
+    gBall.y += gBall.vy * ANIMATION_STEP;
+    if (gBall.y < 0 || gBall.y + gBall.h > 1) {
+        gBall.vy *= -1;
+    }
+
+    // if (gDebugging) console.log("Atualize bolinha: ", gBall.x, gBall.y);
+}
+
+// ---------------------------------------------------
+/*
+    Tijolos
+*/
+
+// classe Tijolo
+function Brick(x, y) {
+    this.x = x;
+    this.y = y;
+    this.h = BRICK_H;
+    this.w = BRICK_W;
+    this.rgba = BRICK_COLOR;
+}
+
+// cria grid de tijolos
+function generateBricks(n) {
+    gBricks = [];
+    for (var i = 0; i < n; i++) {
+        var brick = new Brick(x, y);
+        initRect(brick);
+        gBricks.push(brick);
+    }
+    if (gDebugging) console.log("Primeiro tijolo: ", gBricks[0]);
+}
+
+
+// ---------------------------------------------------
+/*
+    Funções auxiliares
+*/
+function playing() {
+    return !gDebugging && !gPaused;
 }

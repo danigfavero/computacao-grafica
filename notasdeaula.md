@@ -45,13 +45,13 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
 - LCD: sistema gráfico *raster*
 
 - **Um problema**
-  
+
   - Traçar uma reta entre 2 pontos em um monitor com imagem *raster*
     - Falta de continuidade: problemas de *aliasing* (a reta na verdade se torna conjuntos de blocos, ou seja, pixels) -- problema de quantização
     - Esse problema pode ser resolvido se os pixels deixarem de ser binários e passam a ter níveis de cinza entre 1 byte
   - IDEIA: algoritmo de Bresenham, para linhas
   - Hipótese: $\theta < 45º$
-  
+
   ```pseudocode
   f(x0, y0) = 0
   próximo ponto deve ser f(x0+1, y0) ou f(x0+1, y0+1)
@@ -67,9 +67,9 @@ Oferecimento da disciplina no primeiro semestre de 2021, com o professor Carlos 
   	pinte (x0+1, y0+1)
   	D += A + B # soma dy - dx
   ```
-  
+
   O algoritmo só precisa de soma, subtração e *shift* (divisão por 2) -- é um algoritmo muito eficiente
-  
+
 - Sistema gráfico *raster* com processador gráfico
 
 ## O domínio da computação gráfica
@@ -314,10 +314,13 @@ O shader roda na GPU
    - Coordenadas (projeção ­— o pipeline faz o resto)
 
 3. **Funções de callback:**
+
    - Tratar eventos (entrada)
    - Feito pelo canvas — HTML5
    - Depende do ambiente
+
 4. **Funções de controle:**
+
    - Para conseguir ser independente de dispositivo
    - Se comunicar com o sistema 
      - Ser capaz de fazer perguntas (width, height, etc)
@@ -645,6 +648,7 @@ var primitiveType = gl.TRIANGLE_STRIP;
   <img src="./img/coordenadas.jpg" alt="coordenadas" style="zoom:33%;" />
 
 - É interessante que as transformações sejam feitas utilizando o **VAO** (vertex array object), assim o WebGL não precisa gerar várias vezes o canvas todo a cada frame: ele aplica uma transformação linear no objeto
+
 - Bem menos processamento computacional
 
 ### Translação
@@ -804,7 +808,7 @@ void main() {
 
 - Comprimento de um vetor ($|\vec{v}| = \sqrt{\vec{v} \cdot \vec{v}}$)
 
--  Normalização ($\vec{v}' = \vec{v}/ |\vec{v}|$)
+- Normalização ($\vec{v}' = \vec{v}/ |\vec{v}|$)
 
 - Distância entre dois pontos ($dist(P,Q) = |P-Q|$)
 
@@ -815,15 +819,17 @@ void main() {
   $$
 
 - **Ortogonalidade:** 
+
   - Dois vetores $\vec{u},\vec{v}$ são ortogonais (perpendiculares) quando $\vec{u} \cdot \vec{v} = 0$
+
   - **Projeção ortogonal**
-    
+
     - dados um vetor $\vec{u}$ e um vetor não nulo $\vec{v}$, é conveniente decompor $\vec{u}$ como a soma de dois vetores $\vec{u} = \vec{u}_1 + \vec{u}_2$, onde $\vec{u}_1$ é paralelo a $\vec{v}$ e $\vec{u}_2$ é ortogonal a $\vec{v}$
     - $\vec{u}_1 = ((\vec{u}\cdot\vec{v}) / (\vec{v}\cdot\vec{v}) )\vec{v}$ (podemos ignorar $\vec{v} \cdot \vec{v}$ se $|\vec{v}|=1$) 
     - $\vec{u}_2 = \vec{u} - \vec{u}_1$
     - Verifique que $\vec{u}_2$ é ortogonal a $\vec{v}$
     - $\vec{u}_1$ é chamado de **projeção ortogonal** de $\vec{u}$ sobre $\vec{v}$
-    
+
     ![projecao](img/projecao.png)
 
 ## Objetos em Javascript
@@ -1063,3 +1069,235 @@ Depois desenhamos. Para cada objeto `obj`:
 - `gl.bindVertexArray(obj.vao)`
 - `gl.uniform4fv(obj.uCor, [1.0, 0.5, 0.0, 1.0])`
 - setar outros *uniform*'s como a transformação
+
+## Transformações afins
+
+É uma classe de transformações que inclui:
+
+- rotação
+- translação
+- escala (uniforme e não uniforme)
+- reflexão
+- cisalhamento
+
+Propriedades:
+
+- todas as transformações afins $T$ preservam combinações afins entre pontos
+  $$
+  R = (1-a) P + a Q \implies T(R) = (1-a) T(P) + a T(Q)
+  $$
+
+### Representação matricial
+
+As combinações afins são preservadas, portanto:
+$$
+R = a_0 F.e_0 + a_1 F.e_1 + a_2 F.O \implies T(R) = a_0 T(F.e_0) + a_1 T(F.e_1) + a_2 T(F.O)
+$$
+Assim, se $R$ é um ponto ou vetor no frame $F$ e sabemos a transformação dos elementos do frame, então sabemos qual a transformação de $R$, ou (em 2D):
+$$
+T(R)[F] = (T(F.e_0)[F] | T(F.e_1)[F] | T(F.O)[F]) (a_0, a_1, a_2)^T
+$$
+ou seja, aplicar uma transformação afim a um ponto/vetor equivale a multiplicar suas coordenadas por uma matriz, formada pela transformação dos elementos do frame
+
+### Translação
+
+- translação por um vetor $\vec{v}$ mapeia qualquer ponto $P$ para $P + \vec{v}$
+- vetores (livres) não são afetados por translação
+
+$$
+T(\vec{v}) =
+\begin{bmatrix}
+1 & 0 & 0 & dx \\
+0 & 1 & 0 & dy \\
+0 & 0 & 1 & dz \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+### Mudança de escala
+
+- mudança de escala uniforme é feita com relação a um ponto
+  - considere a origem do frame padrão
+- dado um escalar $b$, esta transformação mapeia um objeto (ponto ou vetor) de coordenadas $(a_0, a_1, a_2, a_3)^T$ para $(b a_0, b a_1, b a_2, a_3)^T$
+- para mudança não uniforme: $(b_0 a_0, b_1 a_1, b_2 a_2, a_3)^T$
+
+$$
+\begin{bmatrix}
+S_x = 1 & 0 & 0 & 0 \\
+0 & S_y = 1 & 0 & 0 \\
+0 & 0 & S_z = 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+$S_x = S_y = S_z \implies$ escala uniforme
+
+Se diferentes $\implies$ não uniforme
+
+### Reflexão
+
+- Não passa de uma mudança de escala por $-1$
+- **2D**: dada uma linha em um plano, a reflexão troca os pontos de lado simetricamente ao longo dessa linha
+- **3D**: dado um plano em 3D, a reflexão troca os pontos de lado simetricamente ao longo desse plano
+- Pode ser considerado como um caso particular de escalonamento, em que o fator de escala é negativo
+
+$$
+F_x =
+\begin{bmatrix}
+-1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+### Rotação
+
+- é definida para um ponto ou vetor, fixos no espaço
+- **casos básicos**: 
+  - rotação na origem,
+  - ao redor dos vetores bases,
+  - segundo a regra da mão direita
+
+- **Rotação ao redor de $z$**
+  - a origem e o vetor $z$ não são alterados
+  - o vetor unitário $\vec{x}$ é mapeado para $(\cos \theta, \sin \theta, 0, 0)^T$
+  - o vetor unitário $\vec{y}$ é mapeado para $(-\sin \theta, \cos \theta, 0, 0)^T$
+
+- semelhante para os demais vetores de base (ao redor de x e y)
+
+$$
+R_z =
+\begin{bmatrix}
+\cos \theta & - \sin \theta & 0 & 0 \\
+\sin \theta & \cos \theta & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+$$
+x' = x \cos \theta + y \sin \theta \\
+y' = - x \sin \theta + y \cos \theta
+$$
+
+### Cisalhamento (shearing)
+
+- pense em cisalhamento como uma transformação que mapeia um cubo em um paralelogramo (fixe uma face do cubo, e desloque a face oposta, deformando as faces laterais)
+- **Cisalhamento em $xy$**
+  - o ponto $P = (p_x, p_y, p_z, 1)^T$ é transladado pelo vetor $p_z (sh_x, sh_y, 0, 0)^T$
+  - esse vetor é ortogonal ao eixo $z$ e seu comprimento é proporcional a coordenada $z$ do ponto $P$
+- Analogamente para cisalhamento em $xy$ e $yz$
+
+$$
+H_{xy}(\theta) =
+\begin{bmatrix}
+1 & 0 & sh_x & 0 \\
+0 & 1 & sh_y & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+### Casos especiais de transformações afins
+
+- **Transformação rígida**: (ou euclidiana), preserva ângulos e comprimentos
+  - translação e rotação
+- **Transformação ortogonal**: preserva ângulos mas não comprimentos
+  - ângulos + escala uniforme
+- **Transformação homotética**: preserva inclinações das linhas (portanto ângulos)
+
+### Composições de transformações afins
+
+- permite criar transformações complexas
+
+- Transformações afins são fechadas sob composição,
+
+  - ou seja, composições de transformações afins resulta em uma transformação afim
+
+- Sejam $T$ e $S$ transformações afins, então a composição
+
+  - $(S \circ T)(P) = (T( S( P )))$,
+
+  - ou em notação matricial: $M_T M_S P$
+  - observe a mudança na ordem: composição de $S$ seguida de $T$ equivale a multiplicar primeiro pela matriz $S (M_S)$ e depois pela matriz $T (M_T)$
+
+#### Exercício: como rodar um objeto?
+
+- **Por composição:** desenhar o objeto em $P$, rodando de um ângulo ao redor de $P$
+
+  $R(\theta) \circ T(P)$
+
+- **Por construção:** determinar a matriz de transformação pela imagem dos elementos da base do frame de coordenadas
+
+  Temos as transformações de rotação e translação:
+
+$$
+G.e_x = \begin{bmatrix} \cos \theta \\ \sin \theta \\ 0 \end{bmatrix},\ 
+G.e_y = \begin{bmatrix} - \sin \theta \\ \cos \theta \\ 0 \end{bmatrix},\ 
+G.O = \begin{bmatrix} 3 \\ 1 \\ 1 \end{bmatrix}
+$$
+
+​		Em uma matriz de transformação só:
+$$
+A =
+\begin{bmatrix}
+\cos \theta & - \sin \theta & 3  \\
+\sin \theta & \cos \theta & 1  \\
+0 & 0 & 0
+\end{bmatrix}
+$$
+​		Obtendo o novo ponto transladado e rotacionado:
+$$
+Q' = A Q [F] = 
+\begin{bmatrix}
+\cos \theta & - \sin \theta & 3  \\
+\sin \theta & \cos \theta & 1  \\
+0 & 0 & 0
+\end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \\ 1 \end{bmatrix}
+=
+\begin{bmatrix} \cos \theta + 3 & \sin \theta + 1 & 1 \end{bmatrix}
+$$
+​		Implica em
+$$
+P[F] + \begin{bmatrix} \cos \theta \\ \sin \theta \\ 0 \end{bmatrix}
+$$
+
+### Problema de motivação
+
+Dado um triângulo, como calcular o vetor normal a sua superfície?
+
+### Produto vetorial (ou cruzado)
+
+- O produto vetorial é comumente definido no espaço 3D, pois ele se aplica apenas a vetores e não a pontos
+
+  - Ou seja, ignore a coordenada homogênea
+
+- Dado 2 vetores $\vec{u}$ e $\vec{v}$, o produto vetorial é definido como:
+  $$
+  \vec{u} \times \vec{v} = (u_y v_z - u_z v_y, u_z v_x - u_x v_z, u_x v_y - u_y v_x)^T
+  $$
+
+- Para lembrar dessa fórmula podemos usar o determinante: $\vec{u} \times \vec{v} = (\vec{e} | \vec{u} | \vec{v})^T$
+  - onde e são os vetores da base $(e_x, e_y, e_z)$ — vamos usar às vezes $(i, j, k)$
+
+#### Propriedades
+
+1. **Simetria reversa**
+   - $\vec{u} \times \vec{v} = - (\vec{v} \times \vec{u}) \implies \vec{u} \times \vec{u} = 0$
+2. **Não associativo**
+   - Ao contrário de outros produtos em álgebra, o produto vetorial não é associativo: $(\vec{u} \times \vec{v}) \times \vec{w} \neq \vec{u} \times (\vec{v} \times \vec{w})$
+3. **Bilinearidade**
+   - $\vec{u} \times a \vec{v} = a (\vec{u} \times \vec{v})$
+   - $\vec{u} \times (\vec{v} + \vec{w}) = (\vec{u} \times \vec{v}) + (\vec{v} \times \vec{w})$
+
+4. **Perpendicularidade**
+   - $(\vec{u} \times \vec{v})$ é perpendicular a $\vec{u}$ e a $\vec{v}$ ($\vec{u}$ e $\vec{v}$  linearmente independentes)
+     - muito útil em CG para gerar frames de coordenadas e normais
+5. **Ângulo e área**
+   - $|\vec{u} \times \vec{v}| = |\vec{u}| | \vec{v}| \sin \theta$
+     - pode ser usado para calcular o ângulo entre $\vec{u}$ e $\vec{v}$: $\theta$
+     - em geral não é usado para calcular $\theta$ pois o produto escalar é mais simples de calcular
+   - $|\vec{u} \times \vec{v}|$ é igual a área do paralelograma cujos lados são dados por $\vec{u}$ e $\vec{v}$
+

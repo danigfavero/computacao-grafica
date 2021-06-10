@@ -1299,5 +1299,196 @@ Dado um triângulo, como calcular o vetor normal a sua superfície?
    - $|\vec{u} \times \vec{v}| = |\vec{u}| | \vec{v}| \sin \theta$
      - pode ser usado para calcular o ângulo entre $\vec{u}$ e $\vec{v}$: $\theta$
      - em geral não é usado para calcular $\theta$ pois o produto escalar é mais simples de calcular
-   - $|\vec{u} \times \vec{v}|$ é igual a área do paralelograma cujos lados são dados por $\vec{u}$ e $\vec{v}$
+   - $|\vec{u} \times \vec{v}|$ é igual a área do paralelogramo cujos lados são dados por $\vec{u}$ e $\vec{v}$
+
+### Orientação
+
+Dado 2 reais $p$ e $q$, há 3 possibilidades de ordenação, $(p > q)$ ou $(p < q)$ ou $(p = q)$, o que permite a definição de um operador de orientação $Or(p,q)$ que retorna $-1, 0,$ ou $1$ dependendo da ordem de $p$ e $q$
+
+Dados dois números reais $p$ e $q$, uma função possível de orientação pode ser dado por:
+$$
+Or(p,q) = sign(q-p)
+$$
+
+#### Em 2D
+
+Em um espaço d-dimensional, a orientação de (d+1) pontos pode ser definida pelo sinal do determinante da matriz composta pelas suas coordenadas homogêneas
+
+Dados 3 pontos quaisquer $P,Q,R$:
+
+- $Or(P,Q,R) = +1$ quando estão no sentido anti-horário
+
+$$
+Or(P,Q,R) = sign
+\begin{vmatrix}
+1 & 1 & 1\\
+P_x & Q_x & R_x\\
+P_y & Q_y & R_y
+\end{vmatrix}
+$$
+
+(A primeira linha tem as coordenadas homogêneas)
+
+- Se $Or=0$, os pontos são colineares
+
+#### Em 3D
+
+Dados 4 pontos quaisquer $P,Q,R,S$
+
+- $Or(P,Q,R,S) = +1$ quando estão no sentido anti-horário
+
+$$
+Or(P,Q,R,S) = sign
+\begin{vmatrix}
+1 & 1 & 1 & 1\\
+P_x & Q_x & R_x & S_x\\
+P_y & Q_y & R_y & S_y\\
+P_z & Q_z & R_z & S_z
+\end{vmatrix}
+$$
+
+- Se $Or=0$, os pontos são coplanares
+
+### Aplicação: intersecção de linhas
+
+Dados dois segmentos de linha $PQ$ e $RS$ em um plano, determinar se eles se intersectam
+
+- **Possíveis problemas:**
+  - Linhas paralelas
+  - Junções T
+  - Linhas colineares 
+  - Cantos
+
+#### Uma solução
+
+**Simplificação**: apenas intersecções próprias (IP), com um único ponto em comum no interior dos segmentos
+
+- Se 3 pontos forem colineares, os segmentos não formam uma IP
+- As linhas se cruzam se e somente se
+  - $P$ e $Q$ se encontram em lados opostos de $RS$
+  - $R$ e $S$ se encontram em lados opostos de $PQ$
+
+$$
+(Or(P,Q,R) * Or(P,Q,S) < 0 )\ \text{ && }\ ( Or(R,S,P) * Or(R,S,Q) <0)
+$$
+
+### Aplicação: recorte de linhas (*line clipping*)
+
+É o processo de aparar as primitivas gráficas (linhas, polígonos, círculos) relativo a um polígono convexo plano (a janela que contém a parte visível do desenho)
+
+#### Algoritmo de Liang-Barsky
+
+- Livre de sistema de coordenadas
+- Genérico
+- Fácil de derivar e estender para outras dimensões
+
+Usa "**semiplano**" (*halfplan*e): porção do plano de um lado de uma linha
+
+- em d dimensões, usamos **semiespaços** (*halfspaces*) de um lado de um hiperplano de (d-1) dimensões.
+
+**Semiespaço: representação**
+
+Definido por um par $<R,n>$
+
+- ponto R : no hiperplano divisor do espaço
+
+- vetor n : normal apontada para o semiespaço
+
+Assim, um ponto $P$ está dentro de um semiespaço se e somente se o ângulo entre o vetor ($P-R$) e $n$ for menor que $90º$ que pode ser calculado usando:
+$$
+(P-R) \cdot n \geq 0
+$$
+
+- Se o produto escalar for zero, $P$ está no semiplano divisor do espaço
+
+**Entrada e saída do algoritmo de Liang-Barsky**
+
+Entrada do algoritmo:
+
+- conjunto de $m$ semiplanos: $H_0, \dots , H_{m-1}$ que definem um polígono convexo
+
+  - onde $H_i$ é representado por um par $[R_i, n_i]$
+
+- conjunto de $n$ segmentos de linha: $S_1$ a $S_n$
+  - onde $S_i$ é definido por um par de pontos $[ P_{i,0}, P_{i,1} ]$
+
+Como o algoritmo recorta cada segmento de linha retorna os segmentos "recortados", basta mostrar o algoritmo para um segmento $[P_0, P_1]$
+
+Caso o segmento estiver fora do polígono, um valor *"empty"* é retornado
+
+**Parametrização**
+
+Combinações convexas
+$$
+P(a) = (1-a)P_0 + aP_1, \text{ onde } 0 \leq a \leq 1
+$$
+O algoritmo calcula dois valores: $a_0$ e $a_1$ que representa o segmento recortado $[P(a_0), P(a_1)]$, onde $a_0 < a_1$ e inicialmente $a_0 = 0$ e $a_1 = 1$
+
+ **Algoritmo**
+
+````
+Para cada semiplano <R,n>
+	recorte o segmento
+````
+
+- Assim, para cada semiplano, o valor $a_0$ pode aumentar e de $a_1$ diminuir
+
+- Caso $a_0 > a_1$, o segmento se torna vazio e o algoritmo pode encerrar
+
+**Como calcular $a$ para um semiplano?**
+
+Vamos calcular $(P(a)-R) \cdot n \geq 0$:
+$$
+(((1-a) P_0 + aP_1) - R) \cdot \vec{n}) \geq 0 \\
+(a (P_1 - P_0) - (R - P_0)) \cdot \vec{n}) \geq 0 \\
+a \underbrace{(P_1 - P_0) \cdot \vec{n}}_{d_1} \geq \underbrace{(R- P_0) \cdot \vec{n}}_{d_n}\\
+\implies ad_1 \geq d_r
+$$
+
+- Quando $a = \frac{d_r}{d_1}$, $a$ está na linha divisória
+
+**Simplificação**	
+
+````
+Seja:
+	d1 = (P1 - P0) . n e dr = (R - P0) . n
+
+Caso d1 > 0: 
+	então a >= dr / d1
+	=> a0 = max( a0 , dr / d1 )
+	
+Caso d1 < 0: 
+	então a <= dr / d1
+	=> a1 = min( a1 , dr / d1 )
+	
+Caso d1 = 0:
+	=> a é indefinido. Segmento é paralelo a linha do semiplano.
+	Assim, se (P0-R).n < 0 
+		então a linha está inteiramente fora e pode retornar "empty"
+	Senão, 
+		continue
+````
+
+**Exemplo:**
+
+![line clipping](img/line-clipping.png)
+
+## Visualização 3D
+
+- O mesmo mundo, múltiplas câmeras
+
+### Frame de coordenadas do olho
+
+O z aponta para o o olho do espectador (EYE). No entanto, o -z aponta para o objeto capturado (AT)
+
+UP é uma direção no mundo
+
+- O_eye ~EYE
+- -z ~ (AT - EYE)
+
+O fram
+
+- e_z = normalize(EYE - AT)
+- e_x = normalize(UP $\times$ e_z)
+- e_y = e_z $\times$ e_x
 

@@ -30,7 +30,7 @@ const RACKET_MIN_SIZE = 0.03;
 const RACKET_SPEED    = 0.02;
 
 // Bolinha
-const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2 - 0.2; //FIXME
+const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2;
 const BALL_Y         = RACKET_Y + RACKET_H;
 const BALL_SIDE      = 0.02;
 const BALL_MIN_SPEED = 0.01;
@@ -48,6 +48,7 @@ const ANIMATION_STEP = 1.0;
 // Variáveis globais
 var canvas, gl;
 var gProgram;
+var gInterval;
 
 // Botões
 var gPaused = true;
@@ -69,12 +70,8 @@ var gBricks = [];
 window.onload = main;
 
 function main() {
-    // Cria canvas
+    // Canvas, webGL
     canvas = document.getElementById("glCanvas");
-    if (gDebugging)
-        console.log(`Canvas tem tamanho ${canvas.width} x ${canvas.height}`);
-
-    // Cria o contexto do WebGL
     gl = canvas.getContext('webgl2');
     if (!gl) alert("WebGL 2.0 isn't available");
 
@@ -89,6 +86,7 @@ function main() {
     // Gera estruturas do jogo
     generateRacket();
     generateBall();
+    generateBricks();
 
     // Botões
     document.getElementById("play").onclick = playOrPauseButton;
@@ -104,9 +102,6 @@ function main() {
 
     // Desenha
     render();
-    if (!gDebugging) {
-        setInterval(render, 200);
-    }
 }
 
 // Função de renderização da animação
@@ -115,15 +110,14 @@ function render() {
     
     updateRacketPosition();
     updateBallPosition();
+    // updateBricks();
 
     gl.useProgram(gProgram);
 
     // Renderiza raquete
     gl.bindVertexArray(gRacket.vao);
-    var translation = [2.0 * gRacket.x - 1.0, 2.0 * gRacket.y - 1.0];
+    var translation = [gRacket.vx, 0];
     gl.uniform2fv(gRacket.trans, translation);
-    var scaling = [2.0, 2.0];
-    gl.uniform2fv(gRacket.scale, scaling);
 
     gl.uniform4f(
         gRacket.color,
@@ -136,10 +130,8 @@ function render() {
 
     // Renderiza bolinha
     gl.bindVertexArray(gBall.vao);
-    var translation = [2.0 * gBall.x - 1.0, 2.0 * gBall.y - 1.0];
+    translation = [gBall.vx, gBall.vy];
     gl.uniform2fv(gBall.trans, translation);
-    var scaling = [2.0, 2.0];
-    gl.uniform2fv(gBall.scale, scaling);
 
     gl.uniform4f(
         gBall.color,
@@ -150,6 +142,23 @@ function render() {
     );
     gl.drawArrays(gl.TRIANGLES, 0, gBall.length/2);
 
+    // Renderiza tijolos
+    var n = gBricks.length;
+    if (gDebugging) console.log("gBricks[0]", gBricks[0].x, gBricks[0].y);
+    for (var i = 0; i < n; i++) {
+        // para cada tijolo
+        gl.bindVertexArray(gBricks[i].vao);
+
+        
+    gl.uniform4f(
+        gBricks[i].color,
+        gBricks[i].rgba[0],
+        gBricks[i].rgba[1],
+        gBricks[i].rgba[2],
+        gBricks[i].rgba[3]
+    );
+        gl.drawArrays(gl.TRIANGLES, 0, gBricks[i].length/2);
+    }
 }
 
 /*
@@ -178,34 +187,60 @@ function playOrPauseButton(e) {
         gPaused = false;
         gBall.vx = gBallSpeed;
         gBall.vy = gBallSpeed;
-        setInterval(render, 200);
-    } else { // pausa o jogo
+        interval = setInterval(render, 200);
+        if (gDebugging) console.log("Jogo pausado? ", gPaused);
+
+    } else if (playPauseText == "Pausar") { // pausa o jogo
         e.target.innerHTML = "Jogar";
+
         gPaused = true;
         gBall.vx = 0;
         gBall.vy = 0;
+
+        clearInterval(gInterval);
+
+        if (gDebugging) console.log("Jogo pausado? ", gPaused);
+
+    } else { // dá um passo
         render();
-       
+        if (gDebugging) console.log("PASSO");
     }
-    if (gDebugging) console.log("Jogo pausado? ", gPaused);
 }
 
 function debugOrPlayButton(e) {
     var debugText = e.target.innerHTML;
 
-    if (debugText == "Depurar") {
+    if (debugText == "Depurar") { // começa a depurar
         e.target.innerHTML = "Jogar";
+        document.getElementById('play').innerHTML = "Passo";
+
+        gPaused = false;
         gDebugging = true;
-    } else {
+
+        console.log("MODO DEBUG");
+
+    } else { // vai para o estado de pausa
         e.target.innerHTML = "Depurar";
+        document.getElementById('play').innerHTML = "Jogar";
+
+        gPaused = true;
         gDebugging = false;
-        setInterval(render, 200);
     }
-    if (gDebugging) console.log("MODO DEBUG");
 }
 
 function clearButton(e) {
     if (gDebugging) console.log("Limpando...");
+
+    generateRacket();
+    generateBall();
+
+    gPaused = true;
+    gDebugging = false;
+
+    document.getElementById('ballSpeed').value = 0.05;
+    document.getElementById('racketSize').value = 0.235;
+    document.getElementById('play').innerHTML = "Jogar";
+    document.getElementById('debug').innerHTML = "Depurar";
 }
 
 // Controle da Raquete
@@ -224,8 +259,6 @@ function keyDown(e) {
     if (gDebugging) {
         console.log("Tecla pressionada: ", e.key);
         console.log("Velocidade da raquete: ", gRacket.vx);
-
-        render();
     }
 }
 
@@ -242,11 +275,10 @@ var vertexShaderSrc = `#version 300 es
 in vec2 aPosition;
 
 uniform vec2 uTranslation;
-uniform vec2 uScale;
 
 void main() {
-    vec2 scaled = aPosition * uScale;
-    vec2 translated = scaled + uTranslation;
+    vec2 normalized = 2.0 * aPosition - 1.0;
+    vec2 translated = normalized + uTranslation;
     gl_Position = vec4(translated, 0, 1);
 }
 `;
@@ -289,7 +321,6 @@ function initRect(rect) {
 
     rect.color     = gl.getUniformLocation(gProgram, "uColor");
     rect.trans     = gl.getUniformLocation(gProgram, "uTranslation");
-    rect.scale     = gl.getUniformLocation(gProgram, "uScale");
 }
 
 // Geometria do retângulo
@@ -348,12 +379,13 @@ function generateRacket(w=RACKET_SIZE) {
 
 // atualize a posição da raquete
 function updateRacketPosition() {
-    gRacket.x += gRacket.vx * ANIMATION_STEP;
+    gRacket.x += gRacket.vx;
     if (gRacket.x < 0 || gRacket.x + gRacket.w > 1) {
         gRacket.vx = 0;
+
+        if (gDebugging) console.log("Raquete na parede: ", gRacket.x, gRacket.y, gRacket.w, gRacket.h);
     }
 
-    //if (gDebugging) console.log("Atualize raquete: ", gRacket.x);
 }
 
 /*
@@ -386,14 +418,14 @@ function updateBallPosition() {
     gBall.x += gBall.vx * ANIMATION_STEP;
     if (gBall.x < 0 || gBall.x + gBall.w > 1) {
         gBall.vx *= -1;
+        if (gDebugging) console.log("Rebateu em y: ", gBall.x, gBall.vx);
     }
 
     gBall.y += gBall.vy * ANIMATION_STEP;
     if (gBall.y < 0 || gBall.y + gBall.h > 1) {
         gBall.vy *= -1;
+        if (gDebugging) console.log("Rebateu em x: ", gBall.y, gBall.vy);
     }
-
-    // if (gDebugging) console.log("Atualize bolinha: ", gBall.x, gBall.y);
 }
 
 /*
@@ -412,13 +444,30 @@ function Brick(x, y) {
 }
 
 // cria grid de tijolos
-function generateBricks(n) {
+function generateBricks() {
+    var border = 0.002;
     gBricks = [];
-    for (var i = 0; i < n; i++) {
-        var brick = new Brick(x, y);
-        initRect(brick);
-        gBricks.push(brick);
+    for (var i = 1; i <= N_ROWS; i++) {
+        var leftest;
+        var cols;
+        if (i % 2 == 1) {
+            leftest = 0;
+            cols = N_COLS;
+        } else { // se par, desloca a linha
+            leftest = BRICK_W/2;
+            cols = N_COLS - 1;
+        }
+
+        for (var j = 0; j < cols; j++) {
+            var x = leftest + j * (BRICK_W + border);
+            var y =  1 - i * (BRICK_H + border);
+
+            var brick = new Brick(x, y);
+            initRect(brick);
+            gBricks.push(brick);
+        }
     }
+
     if (gDebugging) console.log("Primeiro tijolo: ", gBricks[0]);
 }
 
@@ -428,6 +477,50 @@ function generateBricks(n) {
     Funções auxiliares
 =================================================================
 */
-function playing() {
-    return !gDebugging && !gPaused;
+function xCollision(rect1, rect2) {
+    var l1 = rect1.x;
+    var b1 = rect1.y;
+    var r1 = l1 + rect1.w;
+    var t1 = b1 + rect1.h;
+
+    var l2 = rect2.x;
+    var b2 = rect2.y;
+    var r2 = l2 + rect2.w;
+    var t2 = b2 + rect2.h;
+
+    // rect1 em cima de rect2
+    if (b1 <= t2 && t1 >= b2 && r1 <= l2 && l1 >= r2) {
+        return true;
+    }
+
+    // rect1 embaixo de rect2
+    if (false) {
+        return true;
+    }
+
+    return false;
+}
+
+function yCollision(rect1, rect2) {
+    var l1 = rect1.x;
+    var b1 = rect1.y;
+    var r1 = l1 + rect1.w;
+    var t1 = b1 + rect1.h;
+
+    var l2 = rect2.x;
+    var b2 = rect2.y;
+    var r2 = l2 + rect2.w;
+    var t2 = b2 + rect2.h;
+
+    // rect1 à esquerda de rect2
+    if (false) {
+        return true;
+    }
+
+    // rect1 à direita de rect2
+    if (false) {
+        return true;
+    }
+
+    return false;
 }

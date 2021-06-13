@@ -34,7 +34,8 @@ const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2;
 const BALL_Y         = RACKET_Y + RACKET_H;
 const BALL_SIDE      = 0.02;
 const BALL_MIN_SPEED = 0.01;
-var gBallSpeed     = 0.05;
+const BALL_SPEED     = 0.05;
+var gBallSpeed     = BALL_SPEED;
 
 // Tijolos
 const BRICK_W   = 0.098;
@@ -91,7 +92,7 @@ function main() {
     // Botões
     document.getElementById("play").onclick = playOrPauseButton;
     document.getElementById("debug").onclick = debugOrPlayButton;
-    document.getElementById("clear").onclick= clearButton;
+    document.getElementById("clear").onclick = clearButton;
 
     // Sliders
     document.getElementById("ballSpeed").onchange = updateBallSpeed;
@@ -110,13 +111,13 @@ function render() {
     
     updateRacketPosition();
     updateBallPosition();
-    // updateBricks();
+    updateBricks();
 
     gl.useProgram(gProgram);
 
     // Renderiza raquete
     gl.bindVertexArray(gRacket.vao);
-    var translation = [gRacket.vx, 0];
+    var translation = [gRacket.x - RACKET_X, 0];
     gl.uniform2fv(gRacket.trans, translation);
 
     gl.uniform4f(
@@ -130,7 +131,7 @@ function render() {
 
     // Renderiza bolinha
     gl.bindVertexArray(gBall.vao);
-    translation = [gBall.vx, gBall.vy];
+    translation = [gBall.x - BALL_X, gBall.y - BALL_Y];
     gl.uniform2fv(gBall.trans, translation);
 
     gl.uniform4f(
@@ -148,15 +149,16 @@ function render() {
     for (var i = 0; i < n; i++) {
         // para cada tijolo
         gl.bindVertexArray(gBricks[i].vao);
+        translation = [0, 0];
+        gl.uniform2fv(gBricks[i].trans, translation);
 
-        
-    gl.uniform4f(
-        gBricks[i].color,
-        gBricks[i].rgba[0],
-        gBricks[i].rgba[1],
-        gBricks[i].rgba[2],
-        gBricks[i].rgba[3]
-    );
+        gl.uniform4f(
+            gBricks[i].color,
+            gBricks[i].rgba[0],
+            gBricks[i].rgba[1],
+            gBricks[i].rgba[2],
+            gBricks[i].rgba[3]
+        );
         gl.drawArrays(gl.TRIANGLES, 0, gBricks[i].length/2);
     }
 }
@@ -181,28 +183,30 @@ function updateRacketSize(e) {
 
 function playOrPauseButton(e) {
     var playPauseText = e.target.innerHTML;
-    
+
     if (playPauseText == "Jogar") { // começa o jogo
         e.target.innerHTML = "Pausar";
         gPaused = false;
+
         gBall.vx = gBallSpeed;
         gBall.vy = gBallSpeed;
-        interval = setInterval(render, 200);
+        gInterval = setInterval(render, 200);
+
         if (gDebugging) console.log("Jogo pausado? ", gPaused);
 
     } else if (playPauseText == "Pausar") { // pausa o jogo
         e.target.innerHTML = "Jogar";
-
         gPaused = true;
+
         gBall.vx = 0;
         gBall.vy = 0;
-
         clearInterval(gInterval);
 
         if (gDebugging) console.log("Jogo pausado? ", gPaused);
 
     } else { // dá um passo
         render();
+
         if (gDebugging) console.log("PASSO");
     }
 }
@@ -233,12 +237,13 @@ function clearButton(e) {
 
     generateRacket();
     generateBall();
+    generateBricks();
 
     gPaused = true;
     gDebugging = false;
 
-    document.getElementById('ballSpeed').value = 0.05;
-    document.getElementById('racketSize').value = 0.235;
+    document.getElementById('ballSpeed').value = BALL_SPEED;
+    document.getElementById('racketSize').value = RACKET_SIZE;
     document.getElementById('play').innerHTML = "Jogar";
     document.getElementById('debug').innerHTML = "Depurar";
 }
@@ -246,7 +251,8 @@ function clearButton(e) {
 // Controle da Raquete
 function keyDown(e) {
     var key = e.keyCode;
-    if (!KEYS.includes(key)) return;
+    if (!KEYS.includes(key) || gPaused) return;
+
 
     if (key == A || key == J) { // esquerda
         gRacket.vx = - RACKET_SPEED;
@@ -277,9 +283,9 @@ in vec2 aPosition;
 uniform vec2 uTranslation;
 
 void main() {
-    vec2 normalized = 2.0 * aPosition - 1.0;
-    vec2 translated = normalized + uTranslation;
-    gl_Position = vec4(translated, 0, 1);
+    vec2 translated = aPosition + uTranslation;
+    vec2 normalized = 2.0 * translated - 1.0;
+    gl_Position = vec4(normalized, 0, 1);
 }
 `;
 
@@ -385,7 +391,6 @@ function updateRacketPosition() {
 
         if (gDebugging) console.log("Raquete na parede: ", gRacket.x, gRacket.y, gRacket.w, gRacket.h);
     }
-
 }
 
 /*
@@ -471,6 +476,12 @@ function generateBricks() {
     if (gDebugging) console.log("Primeiro tijolo: ", gBricks[0]);
 }
 
+function updateBricks() {
+    var brickDestroyed = false;
+    if (brickDestroyed) {
+        generateBricks();
+    }
+}
 
 /*
 =================================================================

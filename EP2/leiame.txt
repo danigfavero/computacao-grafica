@@ -3,21 +3,38 @@
 
     Autor: Daniela Gonzalez Favero
     Data: 15 de junho de 2021
-    Comentários: essa solução foi baseada em ...
 ===========================================================
 
     INTRODUÇÃO
 
-O jogo
+O jogo "paredão" permite que o jogador utilize uma raquete para rebater uma 
+bolinha em uma parede de tijolos. Quando um tijolo é atingido, ele desaparece. 
+O objetivo do jogador é destruir todos os tijolos, sem deixar que a bolinha 
+passe pela raquete (para a borda inferior do canvas). A velocidade com a qual a
+ bolinha se move e o tamanho da raquete podem ser alterados por sliders (acima 
+do canvas). Pressione "Jogar" para iniciar o jogo, "Depurar" para executá-lo 
+passo-a-passo (clicando no botão "Passo"), e clique em "Limpar" para retornar 
+às configurações iniciais.
+
 ===========================================================
 
     HORAS DE TRABALHO
 
-Horas dedicadas por semana:
-Horas dedicadas no total:
+- Horas dedicadas por semana: 12h
+- Horas dedicadas no total: 24h
+
 ===========================================================
 
     DIFICULDADES
+
+    1. A maior dificuldade encontrada por mim foi compreender a translação de 
+múltiplos objetos. Estive com um bug persistente e não sabia mais o que fazer. 
+Só depois de conversar com uma colega sobre meu problema, que notei que eu 
+estava confundindo as coordenadas (x, y) do WebGL (fixas) com as do Javascript 
+(variáveis). Depois entendi a relação dessas coordenadas com as velocidades, e 
+então foi relativamente simples continuar o EP.
+
+    2. Uma outra dificuldade encontrada foi na detecção de colisões.
 
 ===========================================================
 
@@ -27,6 +44,5 @@ Horas dedicadas no total:
 
     OPCIONAIS
 
-- Arquivo paredao.css para configurar algumas propriedades 
-da interface
+
 ===========================================================

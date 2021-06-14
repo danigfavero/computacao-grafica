@@ -3,7 +3,8 @@
 
     Autor: Daniela Gonzalez Favero
     Data: 15 de junho de 2021
-    Comentários: essa solução foi baseada no arquivo utilizado em aula.
+    Comentários: essa solução foi baseada no material de aula.
+    O arquivo foi totalmente copiado daquele disponibilizado pelo professor.
 */
 
 /*

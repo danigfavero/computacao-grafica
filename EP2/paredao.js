@@ -3,7 +3,9 @@
 
     Autor: Daniela Gonzalez Favero
     Data: 15 de junho de 2021
-    Comentários: essa solução foi baseada em ...
+    Comentários: essa solução foi baseada no material de aula.
+    As funções dos shaders e da geometria do retângulo foram quase que
+    totalmente copiadas (com algumas modificações) do arquivo rects.js.
 */
 
 // Valores ASCII
@@ -109,6 +111,7 @@ function main() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
     
+    // atualiza objetos (variáveis globais)
     updateRacketPosition();
     updateBallPosition();
     updateBricks();
@@ -145,7 +148,6 @@ function render() {
 
     // Renderiza tijolos
     var n = gBricks.length;
-    if (gDebugging) console.log("gBricks[0]", gBricks[0].x, gBricks[0].y);
     for (var i = 0; i < n; i++) {
         // para cada tijolo
         gl.bindVertexArray(gBricks[i].vao);
@@ -163,51 +165,71 @@ function render() {
     }
 }
 
+
 /*
 =================================================================
     Callbacks
     Funções para tratamento dos eventos de interação
 =================================================================
 */
-// Slider: chama render quando modificado
+// Slider 'velocidade da bolinha': altera módulo da velocidade em meio ao jogo,
+// mas mantém a direção atual
 function updateBallSpeed(e) {
+    if (gDebugging) console.log("Nova velocidade da bola: ", gBallSpeed);
+
     gBallSpeed = e.target.value;
-    if (gDebugging) console.log("Velocidade da bola: ", gBallSpeed);
+    if (gBall.vx == 0 && gBall.vx == 0) {
+        gBall.vx = sign(gBall.vx) * gBallSpeed;
+        gBall.vy = sign(gBall.vy) * gBallSpeed;
+    }
 }
 
+// Slider 'tamanho da raquete': desenha a raquete novamente
 function updateRacketSize(e) {
+    if (gDebugging) console.log("Novo tamanho da raquete:", gRacket.w);
+
     var newW = parseFloat(e.target.value);
     generateRacket(newW);
-    if (gDebugging) console.log("Novo tamanho da raquete:", gRacket.w);
+    render();
 }
 
 function playOrPauseButton(e) {
     var playPauseText = e.target.innerHTML;
 
     if (playPauseText == "Jogar") { // começa o jogo
+        if (gDebugging) console.log("Jogo pausado? ", gPaused);
+
+        // html
         e.target.innerHTML = "Pausar";
+
+        // variáveis globais
         gPaused = false;
 
-        gBall.vx = gBallSpeed;
-        gBall.vy = gBallSpeed;
+        // animação
+        if (gBall.vx == 0 && gBall.vx == 0) {
+            gBall.vx = gBallSpeed;
+            gBall.vy = gBallSpeed;
+        }
         gInterval = setInterval(render, 200);
 
-        if (gDebugging) console.log("Jogo pausado? ", gPaused);
-
     } else if (playPauseText == "Pausar") { // pausa o jogo
+        if (gDebugging) console.log("Jogo pausado? ", gPaused);
+        
+        // html
         e.target.innerHTML = "Jogar";
+        
+        // variáveis globais
         gPaused = true;
 
-        gBall.vx = 0;
-        gBall.vy = 0;
+        // animação
         clearInterval(gInterval);
 
-        if (gDebugging) console.log("Jogo pausado? ", gPaused);
-
     } else { // dá um passo
+        if (gDebugging) console.log("PASSO");
+
+        // animação
         render();
 
-        if (gDebugging) console.log("PASSO");
     }
 }
 
@@ -215,37 +237,36 @@ function debugOrPlayButton(e) {
     var debugText = e.target.innerHTML;
 
     if (debugText == "Depurar") { // começa a depurar
+        console.log("MODO DEBUG");
+        // html
         e.target.innerHTML = "Jogar";
         document.getElementById('play').innerHTML = "Passo";
 
-        gPaused = false;
+        // variáveis globais
         gDebugging = true;
 
-        console.log("MODO DEBUG");
+        // animação
+        clearInterval(gInterval);
+        if (gBall.vx == 0 && gBall.vx == 0) {
+            gBall.vx = gBallSpeed;
+            gBall.vy = gBallSpeed;
+        }
+        gPaused = false;
 
     } else { // vai para o estado de pausa
+
+        // html
         e.target.innerHTML = "Depurar";
         document.getElementById('play').innerHTML = "Jogar";
 
+        // variáveis globais
         gPaused = true;
         gDebugging = false;
     }
 }
 
 function clearButton(e) {
-    if (gDebugging) console.log("Limpando...");
-
-    generateRacket();
-    generateBall();
-    generateBricks();
-
-    gPaused = true;
-    gDebugging = false;
-
-    document.getElementById('ballSpeed').value = BALL_SPEED;
-    document.getElementById('racketSize').value = RACKET_SIZE;
-    document.getElementById('play').innerHTML = "Jogar";
-    document.getElementById('debug').innerHTML = "Depurar";
+    clear();
 }
 
 // Controle da Raquete
@@ -266,6 +287,29 @@ function keyDown(e) {
         console.log("Tecla pressionada: ", e.key);
         console.log("Velocidade da raquete: ", gRacket.vx);
     }
+}
+
+// Função auxiliar, chamada quando:
+// - o usuário aperta o botão 'Limpar'
+// - o jogador perde o jogo
+function clear() {
+    if (gDebugging) console.log("Limpando...");
+
+    // reset canvas
+    generateRacket();
+    generateBall();
+    generateBricks();
+    clearInterval(gInterval);
+
+    // variáveis globais
+    gPaused = true;
+    gDebugging = false;
+    document.getElementById('ballSpeed').value = BALL_SPEED;
+    document.getElementById('racketSize').value = RACKET_SIZE;
+
+    // html
+    document.getElementById('play').innerHTML = "Jogar";
+    document.getElementById('debug').innerHTML = "Depurar";
 }
 
 
@@ -301,6 +345,7 @@ void main() {
 }
 `;
 
+
 /*
 =================================================================
     Retângulo: definição da geometria e bindings para o shader
@@ -319,14 +364,14 @@ function initRect(rect) {
 
     // Cria o buffer para mandar os dados para a GPU
     var bufferPositions = gl.createBuffer();
-    var aPosition  = gl.getAttribLocation(gProgram, "aPosition");
+    var aPosition = gl.getAttribLocation(gProgram, "aPosition");
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferPositions);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(aPosition);
     gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 
-    rect.color     = gl.getUniformLocation(gProgram, "uColor");
-    rect.trans     = gl.getUniformLocation(gProgram, "uTranslation");
+    rect.color = gl.getUniformLocation(gProgram, "uColor");
+    rect.trans = gl.getUniformLocation(gProgram, "uTranslation");
 }
 
 // Geometria do retângulo
@@ -371,12 +416,11 @@ function Racket(w) {
     this.y = RACKET_Y;
     this.h = RACKET_H;
     this.w = w;
-
     this.rgba = RACKET_COLOR;
     this.vx = 0.0;
 }
 
-// cria raquete
+// cria o objeto Raquete e faz os bindings necessários para o WebGL
 function generateRacket(w=RACKET_SIZE) {
     gRacket = new Racket(w);
     if (gDebugging) console.log("Raquete criada: ", gRacket);
@@ -386,10 +430,13 @@ function generateRacket(w=RACKET_SIZE) {
 // atualize a posição da raquete
 function updateRacketPosition() {
     gRacket.x += gRacket.vx;
+
+    // se chegou a alguma parede, para
     if (gRacket.x < 0 || gRacket.x + gRacket.w > 1) {
         gRacket.vx = 0;
 
-        if (gDebugging) console.log("Raquete na parede: ", gRacket.x, gRacket.y, gRacket.w, gRacket.h);
+        if (gDebugging)
+            console.log("Raquete na parede: x=", gRacket.x, "vx=", gRacket.vx);
     }
 }
 
@@ -405,13 +452,12 @@ function Ball() {
     this.y = BALL_Y;
     this.h = BALL_SIDE;
     this.w = BALL_SIDE;
-
     this.rgba = BALL_COLOR;
     this.vx = 0.0;
     this.vy = 0.0;
 }
 
-// cria bolinha
+// cria o objeto Bolinha e faz os bindings necessários para o WebGL
 function generateBall() {
     gBall = new Ball();
     if (gDebugging) console.log("Bolinha criada: ", gBall);
@@ -420,16 +466,29 @@ function generateBall() {
 
 // atualize a posição da bolinha
 function updateBallPosition() {
+
+    // velocidade no eixo x
     gBall.x += gBall.vx * ANIMATION_STEP;
-    if (gBall.x < 0 || gBall.x + gBall.w > 1) {
+    if (gBall.x < 0 || gBall.x + gBall.w > 1 || xCollision(gBall, gRacket)) {
+        if (gDebugging)
+            console.log("Bolinha rebateu: x=", gBall.x, "vx=", gBall.vx);
+
+        // inverte a direção
         gBall.vx *= -1;
-        if (gDebugging) console.log("Rebateu em y: ", gBall.x, gBall.vx);
     }
 
+    // velocidade no eixo y
     gBall.y += gBall.vy * ANIMATION_STEP;
-    if (gBall.y < 0 || gBall.y + gBall.h > 1) {
+    if (gBall.y + gBall.h > 1 || yCollision(gBall, gRacket)) {
+        if (gDebugging)
+        console.log("Bolinha rebateu: y=", gBall.y, "vy=", gBall.vy);
+
+        // inverte a direção
         gBall.vy *= -1;
-        if (gDebugging) console.log("Rebateu em x: ", gBall.y, gBall.vy);
+    }
+    if (gBall.y < 0) { // perdeu o jogo
+        if (gDebugging) console.log("GAME OVER!");
+        clear();
     }
 }
 
@@ -448,13 +507,16 @@ function Brick(x, y) {
     this.rgba = BRICK_COLOR;
 }
 
-// cria grid de tijolos
+// cria o grid de objetos Tijolo e faz os bindings necessários para o WebGL
 function generateBricks() {
     var border = 0.002;
+
     gBricks = [];
     for (var i = 1; i <= N_ROWS; i++) {
         var leftest;
         var cols;
+
+        // determina posição dos tijolos de acordo com a paridade da linha
         if (i % 2 == 1) {
             leftest = 0;
             cols = N_COLS;
@@ -464,9 +526,12 @@ function generateBricks() {
         }
 
         for (var j = 0; j < cols; j++) {
+
+            // define posição no grid
             var x = leftest + j * (BRICK_W + border);
             var y =  1 - i * (BRICK_H + border);
 
+            // cria objeto e faz os bindings
             var brick = new Brick(x, y);
             initRect(brick);
             gBricks.push(brick);
@@ -476,6 +541,7 @@ function generateBricks() {
     if (gDebugging) console.log("Primeiro tijolo: ", gBricks[0]);
 }
 
+// atualize tijolos, verificando se foram destruídos
 function updateBricks() {
     var brickDestroyed = false;
     if (brickDestroyed) {
@@ -483,36 +549,15 @@ function updateBricks() {
     }
 }
 
+
 /*
 =================================================================
     Funções auxiliares
 =================================================================
 */
 function xCollision(rect1, rect2) {
-    var l1 = rect1.x;
-    var b1 = rect1.y;
-    var r1 = l1 + rect1.w;
-    var t1 = b1 + rect1.h;
+    var eps = 0.001; // tomando cuidado com números não redondos e irrisórios
 
-    var l2 = rect2.x;
-    var b2 = rect2.y;
-    var r2 = l2 + rect2.w;
-    var t2 = b2 + rect2.h;
-
-    // rect1 em cima de rect2
-    if (b1 <= t2 && t1 >= b2 && r1 <= l2 && l1 >= r2) {
-        return true;
-    }
-
-    // rect1 embaixo de rect2
-    if (false) {
-        return true;
-    }
-
-    return false;
-}
-
-function yCollision(rect1, rect2) {
     var l1 = rect1.x;
     var b1 = rect1.y;
     var r1 = l1 + rect1.w;
@@ -524,14 +569,57 @@ function yCollision(rect1, rect2) {
     var t2 = b2 + rect2.h;
 
     // rect1 à esquerda de rect2
-    if (false) {
+    if ((b1 <= t2 + eps) && (t1 + eps >= b2) && (eq(r1, l2, eps)) && (l1 <= r2 + eps)) {
+        if (gDebugging) 
+            console.log("Colisão em x: r1=l2=", r1);
+
         return true;
     }
 
-    // rect1 à direita de rect2
-    if (false) {
+    // rect1 à de rect2
+    if ((b2 <= t1 + eps) && (t2 + eps >= b1) && (eq(l2, r1, eps)) && (l2 <= r1 + eps)) {
+        if (gDebugging) 
+            console.log("Colisão em x: l2=r1=", r1);
+
         return true;
     }
 
     return false;
+}
+
+function yCollision(rect1, rect2) {
+    var eps = 0.001; // tomando cuidado com números não redondos e irrisórios
+
+    var l1 = rect1.x;
+    var b1 = rect1.y;
+    var r1 = l1 + rect1.w;
+    var t1 = b1 + rect1.h;
+
+    var l2 = rect2.x;
+    var b2 = rect2.y;
+    var r2 = l2 + rect2.w;
+    var t2 = b2 + rect2.h;
+
+    // rect1 em cima de rect2
+    if ((eq(b1, t2, eps)) && (t1 + eps >= b2) && (r1 + eps>= l2) && (l1 <= r2 + eps)) {
+        if (gDebugging) 
+            console.log("Colisão em y: b1=t2=", b1);
+
+        return true;
+    }
+
+    // rect1 embaixo de rect2
+    if ((eq(b2, t1, eps)) && (t2 + eps >= b1) && (r2 + eps>= l1) && (l2 <= r1 + eps)) {
+        if (gDebugging) 
+            console.log("Colisão em y: b2=t1=", t1);
+
+        return true;
+    }
+
+    return false;
+}
+
+// verifica se dois números x,y são iguais com precisão eps
+function eq(x, y, eps) { 
+    return (x <= y + eps) && (y <= x + eps);
 }

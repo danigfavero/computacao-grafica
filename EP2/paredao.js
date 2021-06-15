@@ -63,6 +63,9 @@ var gRacket;
 var gBall;
 var gBricks = [];
 
+// Flags
+var brickDestroyed = false;
+
 
 /*
 =====================================================================
@@ -178,9 +181,9 @@ function updateBallSpeed(e) {
     if (gDebugging) console.log("Nova velocidade da bola: ", gBallSpeed);
 
     gBallSpeed = e.target.value;
-    if (gBall.vx == 0 && gBall.vx == 0) {
-        gBall.vx = sign(gBall.vx) * gBallSpeed;
-        gBall.vy = sign(gBall.vy) * gBallSpeed;
+    if (gBall.vx != 0 && gBall.vx != 0) {
+        gBall.vx = Math.sign(gBall.vx) * gBallSpeed;
+        gBall.vy = Math.sign(gBall.vy) * gBallSpeed;
     }
 }
 
@@ -310,6 +313,8 @@ function clear() {
     // html
     document.getElementById('play').innerHTML = "Jogar";
     document.getElementById('debug').innerHTML = "Depurar";
+
+    render();
 }
 
 
@@ -469,7 +474,7 @@ function updateBallPosition() {
 
     // velocidade no eixo x
     gBall.x += gBall.vx * ANIMATION_STEP;
-    if (gBall.x < 0 || gBall.x + gBall.w > 1 || xCollision(gBall, gRacket)) {
+    if (gBall.x < 0 || gBall.x + gBall.w > 1 || ballXCollisions()) {
         if (gDebugging)
             console.log("Bolinha rebateu: x=", gBall.x, "vx=", gBall.vx);
 
@@ -479,7 +484,7 @@ function updateBallPosition() {
 
     // velocidade no eixo y
     gBall.y += gBall.vy * ANIMATION_STEP;
-    if (gBall.y + gBall.h > 1 || yCollision(gBall, gRacket)) {
+    if (gBall.y + gBall.h > 1 || ballYCollisions()) {
         if (gDebugging)
         console.log("Bolinha rebateu: y=", gBall.y, "vy=", gBall.vy);
 
@@ -541,12 +546,24 @@ function generateBricks() {
     if (gDebugging) console.log("Primeiro tijolo: ", gBricks[0]);
 }
 
-// atualize tijolos, verificando se foram destruídos
+// verifica se sobrou algum tijolo
 function updateBricks() {
-    var brickDestroyed = false;
-    if (brickDestroyed) {
-        generateBricks();
+    if (!gBricks.length) {
+        if (gDebugging) console.log("VOCÊ VENCEU!!!!");
+        clear();
     }
+}
+
+// remove tijolo destruído da lista de tijolos
+function deleteBricks(bricksIndexes) {
+    var n = bricksIndexes.length;
+    for (var i = 0; i < n; i++) {
+        gBricks.splice(bricksIndexes[i], 1);
+    }
+
+    brickDestroyed = true;
+
+    if (gDebugging) console.log("Novo array de tijolos: ", gBricks);
 }
 
 
@@ -555,9 +572,44 @@ function updateBricks() {
     Funções auxiliares
 =================================================================
 */
-function xCollision(rect1, rect2) {
-    var eps = 0.001; // tomando cuidado com números não redondos e irrisórios
+// verifica se a bolinha colidiu com algum objeto em seu trajeto, no eixo X
+// também deleta bloco se destruído
+function ballXCollisions() {
+    var destroyedBricks = [];
+    var n = gBricks.length;
+    for (var i = 0; i < n; i++) {
 
+        if (xCollision(gBall, gBricks[i])) {
+            destroyedBricks.push(i);
+        }
+    }
+
+    if (destroyedBricks.length) {
+        deleteBricks(destroyedBricks);
+    }
+
+    return destroyedBricks.length || xCollision(gBall, gRacket);
+}
+
+// verifica se a bolinha colidiu com algum objeto em seu trajeto, no eixo Y
+// também deleta bloco se destruído
+function ballYCollisions() {
+    var destroyedBricks = [];
+    var n = gBricks.length;
+    for (var i = 0; i < n; i++) {
+        if (yCollision(gBall, gBricks[i])) {
+            destroyedBricks.push(i);
+        }
+    }
+
+    if (destroyedBricks.length) {
+        deleteBricks(destroyedBricks);
+    }
+
+    return destroyedBricks.length || yCollision(gBall, gRacket);
+}
+
+function xCollision(rect1, rect2, eps=0.001) {
     var l1 = rect1.x;
     var b1 = rect1.y;
     var r1 = l1 + rect1.w;
@@ -587,9 +639,7 @@ function xCollision(rect1, rect2) {
     return false;
 }
 
-function yCollision(rect1, rect2) {
-    var eps = 0.001; // tomando cuidado com números não redondos e irrisórios
-
+function yCollision(rect1, rect2, eps=0.001) {
     var l1 = rect1.x;
     var b1 = rect1.y;
     var r1 = l1 + rect1.w;
@@ -615,9 +665,19 @@ function yCollision(rect1, rect2) {
 
         return true;
     }
-
     return false;
 }
+
+function overlaps(l1, b1, r1, t1, l2, b2, r2, t2) {
+    if (l1 >= r2 || l2 >= r1) {
+        return false;
+    }
+    if (t1 >= b2 || t2 >= b1) {
+        return false;
+    }
+    return true;
+}
+
 
 // verifica se dois números x,y são iguais com precisão eps
 function eq(x, y, eps) { 

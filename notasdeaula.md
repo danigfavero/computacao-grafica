@@ -1475,20 +1475,261 @@ Caso d1 = 0:
 
 ## Visualização 3D
 
-- O mesmo mundo, múltiplas câmeras
+![model-view transformation](img/modelview-transform.png)
 
-### Frame de coordenadas do olho
+- Transformação do modelview
+- Para gerar a imagem, vamos precisar fazer uma projeção perspectiva dos objetos da cena
+- Plano de imagem independente de dispositivo (OpenGL)
+- Viewport -> pixels (transformação final) — é o que já estamos usando no canvas 
 
-O z aponta para o o olho do espectador (EYE). No entanto, o -z aponta para o objeto capturado (AT)
+### Processo
 
-UP é uma direção no mundo
+- Vamos assumir que os objetos estejam representados em um frame de coordenadas do mundo (world coordinates)
 
-- O_eye ~EYE
-- -z ~ (AT - EYE)
+- Transformação modelview:
+  - transforma as coordenadas do mundo para outra centrada no observador. Vamos chamar de coordenadas do olho (eye coordinates)
 
-O fram
+- **Projeção perspectiva:**
+  - projeta os pontos 3D em coordenadas do olho para um plano chamado plano de imagem (ou plano de projeção).
+  - Vamos ver que na verdade se trata de informação 3D onde a 3a componente traz informação de profundidade.
+  - Processo tem 3 etapas: transformação projetiva, recorte (clipping) e normalização perspectiva
 
-- e_z = normalize(EYE - AT)
-- e_x = normalize(UP $\times$ e_z)
-- e_y = e_z $\times$ e_x
+- **Mapeamento para o viewport:**
+  - converte pontos (independentes de dispositivo) para pixels no viewport
+
+#### Coordenadas centradas no observador
+
+- **Projeção perspectiva**
+  - mais fácil de fazer quando o centro de projeção é a origem e o plano de imagem é ortogonal a um eixo, como o eixo z.
+
+No entanto, para construir o desenho (cena 3D), nós usamos o sistema de coordenadas do mundo (arbitrário, escolhido pelo usuário).
+
+### Criação da transformação perspectiva
+
+#### função `lookAt()`
+
+![lookAt function](img/lookAtfunction.png)
+
+- transforma a cena para coordenadas centradas no observador
+
+- deve ser feita portanto na transformação Modelview
+  - `lookAt( eye, at, up );`
+- Câmera
+  - eixo x para direita
+  - eixo y para cima
+  - eixo z para trás
+
+#### Construindo o frame de coordenadas da câmera a partir dos parâmetros da `lookAt()`
+
+Sabemos que o frame é dado por `(vx, vy, -vz)` (`vz` vai na direção do `eye`, então `-vz` vai na direção de `at`)
+
+````pseudocode
+O_eye <- eye
+vz <- normalize(eye - at)
+vx <- normalize( crossproduct(-vz, up) )
+vy <- normalize( crossproduct( vz, vx) )
+````
+
+No OpenGL, queremos fazer uma transformação M que leva um ponto qualquer do mundo (**worldframe**) para a câmera (para o **viewframe**): $P_W = M.P_V$
+$$
+M = 
+\begin{bmatrix}
+v_{xx} & v_{yx} & v_{zx} & O_x \\
+v_{xy} & v_{yy} & v_{zy} & O_y \\
+v_{xz} & v_{yz} & v_{zz} & O_z \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+Na verdade, queremos algo como $P_V = M^{-1} P_W$
+
+Seja a matriz de rotação $R$:
+$$
+R =
+\begin{bmatrix}
+v_{xx} & v_{yx} & v_{zx} & 0 \\
+v_{xy} & v_{yy} & v_{zy} & 0 \\
+v_{xz} & v_{yz} & v_{zz} & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+E a matriz de translação $T$:
+$$
+T =
+\begin{bmatrix}
+0 & 0 & 0 & -O_x \\
+0 & 0 & 0 & -O_y \\
+0 & 0 & 0 & -O_z \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$
+
+$$
+M^{-1} = R^T.T
+$$
+É dada pela rotação transposta pela matriz de translação
+
+### Projeções
+
+Grupos básicos:
+- **Paralela**: todas as linhas de projeção são paralelas
+  - geometria: obedece transformações afins
+  - quando $f \rightarrow \infty$, projeção ortográfica
+- **Perspectiva:** as linhas de projeção convergem em um ponto
+  - geometria projetiva
+  - linhas são mapeadas para linhas
+  - não conserva transformações afins
+
+### Geometria projetiva
+
+- estuda como projetar pontos de um espaço d-dimensional para um hiperplano de d-1 dimensões (plano de projeção) através de um ponto (fora do plano) chamado centro de projeção.
+
+**Propriedades**
+
+- linhas são mapeadas para linhas
+- não preservam combinações afins (exemplo de ponto central)
+
+Na projeção, retas paralelas se encontram no infinito, em um **ponto ideal**. Este ponto depende do ponto de vista da câmera.
+
+- Quando ligamos todos os pontos ideais de uma câmera que gira 360º, temos o horizonte (uma linha no infinito)
+- O ponto ideal é o encontro de todas as retas paralelas
+- Em 3D, o horizonte se torna um plano no infinito
+
+#### Coordenadas homogêneas: diferenças do espaço afim
+
+- Um ponto regular P no plano tem coordenadas não homogêneas `(x,y)`, e pode ser representado por `(w.x,w.y,w)`, `w != 0`  (lembre-se que antes `w=1`)
+- De coordenada homogênea para o espaço afim: divida as coordenadas por `w`
+
+**Pontos ideais:**
+
+- Considere uma reta passando pela origem com inclinação 2
+- A coordenada homogênea de alguns pontos nessa linha pode ser dada por: `(1,2,1), (2,4,1), (3,6,1), (4,8,1), ...`
+- Que são equivalentes a `(1,2,1), (1,2,1/2), (1,2,1/3), (1,2,1/4),...`
+
+- Quando  `x` tende ao infinito (ponto ideal), temos `(1, 2, 0)`: é a direção da reta
+
+#### Normalização perspectiva (ou projetiva ou divisão perspectiva)
+
+- Dadas as coordenadas homogêneas de um ponto $P = (x, y, w)^T$, a normalização de $P$ é o vetor de coordenadas $(x/w, y/w, 1)^T$
+
+- Observe que normalização nesse caso não significa criar um vetor normal de módulo 1
+
+- Para evitar essa confusão, chamaremos esse processo de divisão perspectiva
+
+### Matrizes de transformação perspectiva
+
+Transformação de projeção perspectiva
+
+Algumas considerações: 
+
+- Apenas pontos à frente do olho serão considerados 
+- Simplificação: usaremos desenhos no plano y-z
+  - Por simetria, tudo que será mostrado nesse plano, vale para o plano x-z
+
+**Sistema de coordenadas**
+
+![image-20210615171518661](img/perspective-transform.png)
+
+**Em 3D**: $( x/(-z/d) , y/(-z/d) , -d, 1) ^T$
+
+- Note que não há uma matriz 4x4 capaz de fazer essa transformação: o $z$ aparece no denominador
+
+Podemos modificar a expressão por $-z/d$
+
+- Assim, temos: $(x, y, z, -z/d)^T$
+- Essa forma é linear em $(x,y,z)$ e pode ser expressa em forma matricial tal que $P'=M.P$
+
+$$
+M =
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & -1/d & 1
+\end{bmatrix}
+$$
+
+- E quando $z=0$? Dentro da câmera: pontos neste plano não mapeados no infinito
+
+### Perspectiva com profundidade
+
+- Note que em $( x/(-z/d) , y/(-z/d) , -d, 1) ^T$, as duas últimas componentes são constantes
+- Após a projeção perdemos informação de profundidade
+
+#### Volume de visualização (*viewing frustum*)
+
+*Frustum* é o seguinte tronco de pirâmide:
+
+![frustum](img/frustum.png)
+
+Considere uma janela retangular centrada em `-z`, e o centro de projeção no olho
+
+**Dados:**
+
+- `fov_y` = ângulo de abertura $\theta$ da pirâmide
+- aspect ratio = `w/h` 
+- 2 planos: `near` e `far` 
+
+Esses 4 parâmetros são usados para calcular a matriz de transformação perspectiva com profundidade (matriz de projeção)
+
+#### Forma matricial
+
+- Utilizar as duas últimas coordenadas para manter informação de profundidade
+
+Considere a matriz
+$$
+M =
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & \alpha & \beta \\
+0 & 0 & -1 & 0
+\end{bmatrix}
+$$
+Aplicando $M$ para um ponto $P = (x, y, z, 1)^T$, em coordenadas homogêneas, teremos que
+$$
+M.P = M =
+\begin{bmatrix}
+x & y & (\alpha . z + \beta) & -z
+\end{bmatrix}
+$$
+Depois da divisão perspectiva, temos que a profundidade é dada por:
+$$
+z' = (\alpha z + \beta)/-z = (- \alpha - \beta/z)
+$$
+desejamos que a função $z'$ seja monotônica
+
+#### Clipping
+
+- Para o clipping, queremos transformar o frustum num cubo (volume canônico de observação)
+
+- O volume canônico se torna um paralelogramo definido por: $-1 \leq x,y,z \leq +1$
+
+- As coordenadas (x,y) são as coords dos pontos projetados na janela de observação
+- z é usada para representar a profundidade
+  - z = -1 pontos mais próximos do observador
+    - plano near ou z = -near  
+  - z = +1 pontos mais distantes 
+    - plano far ou z = -far
+
+#### Matriz perspectiva
+
+Sejam 
+
+- $c = cot (\theta/2)$ 
+- $a$ = aspect ratio 
+- $n | f$ = distâncias ao plano near | far
+
+ A matriz de transformação perspectiva $M$ é: 
+$$
+M =
+\begin{bmatrix}
+c/a & 0 & 0 & 0 \\
+0 & c & 0 & 0 \\
+0 & 0 & (f+n)/(n-f) & (2fn)/(n-f) \\
+0 & 0 & -1 & 0
+\end{bmatrix}
+$$
+
+- esses parâmetros foram escolhidos para criar o volume canônico de observação (vco) 
+- onde $c/a$ e $c$ são fatores de escala para "corrigir" a forma arbitrária do frustum 
 

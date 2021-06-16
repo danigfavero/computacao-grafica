@@ -36,7 +36,7 @@ const BALL_X         = RACKET_X + RACKET_MIN_SIZE*2;
 const BALL_Y         = RACKET_Y + RACKET_H;
 const BALL_SIDE      = 0.02;
 const BALL_MIN_SPEED = 0.01;
-const BALL_SPEED     = 0.05;
+const BALL_SPEED     = 0.02;
 var gBallSpeed     = BALL_SPEED;
 
 // Tijolos
@@ -58,13 +58,9 @@ var gPaused = true;
 var gDebugging = false;
 
 // Estruturas
-var gStructures = [];
 var gRacket;
 var gBall;
 var gBricks = [];
-
-// Flags
-var brickDestroyed = false;
 
 
 /*
@@ -182,6 +178,8 @@ function updateBallSpeed(e) {
 
     gBallSpeed = e.target.value;
     if (gBall.vx != 0 && gBall.vx != 0) {
+        // utilizar o sinal permite mudar a bolinha no meio do jogo e ela continuar na
+        // direção correta
         gBall.vx = Math.sign(gBall.vx) * gBallSpeed;
         gBall.vy = Math.sign(gBall.vy) * gBallSpeed;
     }
@@ -196,6 +194,8 @@ function updateRacketSize(e) {
     render();
 }
 
+// Botão 'Jogar' ou 'Pausar', que controlam se a animação ocorre ou não
+// ou 'Passo', habilitado no modo depuração
 function playOrPauseButton(e) {
     var playPauseText = e.target.innerHTML;
 
@@ -232,15 +232,17 @@ function playOrPauseButton(e) {
 
         // animação
         render();
-
     }
 }
 
+// botão 'Depurar' ou 'Jogar' determina se a animação será executada normalmente ou em
+// passo-a-passo, com mensagens de depuração no console
 function debugOrPlayButton(e) {
     var debugText = e.target.innerHTML;
 
     if (debugText == "Depurar") { // começa a depurar
         console.log("MODO DEBUG");
+
         // html
         e.target.innerHTML = "Jogar";
         document.getElementById('play').innerHTML = "Passo";
@@ -268,6 +270,7 @@ function debugOrPlayButton(e) {
     }
 }
 
+// botão 'Limpar' retorna ao estado inicial do jogo
 function clearButton(e) {
     clear();
 }
@@ -276,7 +279,6 @@ function clearButton(e) {
 function keyDown(e) {
     var key = e.keyCode;
     if (!KEYS.includes(key) || gPaused) return;
-
 
     if (key == A || key == J) { // esquerda
         gRacket.vx = - RACKET_SPEED;
@@ -295,6 +297,7 @@ function keyDown(e) {
 // Função auxiliar, chamada quando:
 // - o usuário aperta o botão 'Limpar'
 // - o jogador perde o jogo
+// - o jogador ganha o jogo
 function clear() {
     if (gDebugging) console.log("Limpando...");
 
@@ -417,11 +420,16 @@ function rectGeometry(rect) {
 
 // classe Raquete
 function Racket(w) {
+    // dimensões
     this.x = RACKET_X;
     this.y = RACKET_Y;
     this.h = RACKET_H;
     this.w = w;
+
+    // cor
     this.rgba = RACKET_COLOR;
+
+    // velocidade no eixo x
     this.vx = 0.0;
 }
 
@@ -434,7 +442,7 @@ function generateRacket(w=RACKET_SIZE) {
 
 // atualize a posição da raquete
 function updateRacketPosition() {
-    gRacket.x += gRacket.vx;
+    gRacket.x += gRacket.vx * ANIMATION_STEP;
 
     // se chegou a alguma parede, para
     if (gRacket.x < 0 || gRacket.x + gRacket.w > 1) {
@@ -453,11 +461,16 @@ function updateRacketPosition() {
 
 // classe Bolinha
 function Ball() {
+    // dimensões
     this.x = BALL_X;
     this.y = BALL_Y;
     this.h = BALL_SIDE;
     this.w = BALL_SIDE;
+
+    // cor
     this.rgba = BALL_COLOR;
+
+    // velocidades nos eixos x e y
     this.vx = 0.0;
     this.vy = 0.0;
 }
@@ -486,11 +499,12 @@ function updateBallPosition() {
     gBall.y += gBall.vy * ANIMATION_STEP;
     if (gBall.y + gBall.h > 1 || ballYCollisions()) {
         if (gDebugging)
-        console.log("Bolinha rebateu: y=", gBall.y, "vy=", gBall.vy);
+            console.log("Bolinha rebateu: y=", gBall.y, "vy=", gBall.vy);
 
         // inverte a direção
         gBall.vy *= -1;
     }
+
     if (gBall.y < 0) { // perdeu o jogo
         if (gDebugging) console.log("GAME OVER!");
         clear();
@@ -505,10 +519,13 @@ function updateBallPosition() {
 
 // classe Tijolo
 function Brick(x, y) {
+    // dimensões
     this.x = x;
     this.y = y;
     this.h = BRICK_H;
     this.w = BRICK_W;
+
+    // cor
     this.rgba = BRICK_COLOR;
 }
 
@@ -561,8 +578,6 @@ function deleteBricks(bricksIndexes) {
         gBricks.splice(bricksIndexes[i], 1);
     }
 
-    brickDestroyed = true;
-
     if (gDebugging) console.log("Novo array de tijolos: ", gBricks);
 }
 
@@ -578,8 +593,12 @@ function ballXCollisions() {
     var destroyedBricks = [];
     var n = gBricks.length;
     for (var i = 0; i < n; i++) {
+        
+        // tentativa de mitigar o problema da colisão X vel_bolinha
+        var eps = 0.001;
+        if (gBallSpeed >= 0.3) eps = BRICK_W/2;
 
-        if (xCollision(gBall, gBricks[i])) {
+        if (xCollision(gBall, gBricks[i], eps)) {
             destroyedBricks.push(i);
         }
     }
@@ -597,7 +616,12 @@ function ballYCollisions() {
     var destroyedBricks = [];
     var n = gBricks.length;
     for (var i = 0; i < n; i++) {
-        if (yCollision(gBall, gBricks[i])) {
+
+        // tentativa de mitigar o problema da colisão X vel_bolinha
+        var eps = 0.001;
+        if (gBallSpeed >= 0.3) eps = BRICK_H/2;
+
+        if (yCollision(gBall, gBricks[i], BRICK_H/2)) {
             destroyedBricks.push(i);
         }
     }
@@ -609,19 +633,26 @@ function ballYCollisions() {
     return destroyedBricks.length || yCollision(gBall, gRacket);
 }
 
+// verifica se dois retângulos colidem no eixo x, com uma tolerância eps
+// (eps é apenas para o eixo x, em y seu valor é sempre 0.001)
 function xCollision(rect1, rect2, eps=0.001) {
+    var xEps = eps;
+    var yEps = 0.001;
+
+    // dimensões do primeiro retângulo
     var l1 = rect1.x;
     var b1 = rect1.y;
     var r1 = l1 + rect1.w;
     var t1 = b1 + rect1.h;
 
+    // dimensão do segundo retângulo
     var l2 = rect2.x;
     var b2 = rect2.y;
     var r2 = l2 + rect2.w;
     var t2 = b2 + rect2.h;
 
     // rect1 à esquerda de rect2
-    if ((b1 <= t2 + eps) && (t1 + eps >= b2) && (eq(r1, l2, eps)) && (l1 <= r2 + eps)) {
+    if ((b1 <= t2 + yEps) && (t1 + yEps >= b2) && (eq(r1, l2, xEps)) && (l1 <= r2 + xEps)) {
         if (gDebugging) 
             console.log("Colisão em x: r1=l2=", r1);
 
@@ -629,7 +660,7 @@ function xCollision(rect1, rect2, eps=0.001) {
     }
 
     // rect1 à de rect2
-    if ((b2 <= t1 + eps) && (t2 + eps >= b1) && (eq(l2, r1, eps)) && (l2 <= r1 + eps)) {
+    if ((b2 <= t1 + yEps) && (t2 + yEps >= b1) && (eq(l2, r1, xEps)) && (l2 <= r1 + xEps)) {
         if (gDebugging) 
             console.log("Colisão em x: l2=r1=", r1);
 
@@ -639,45 +670,42 @@ function xCollision(rect1, rect2, eps=0.001) {
     return false;
 }
 
+// verifica se dois retângulos colidem no eixo y, com uma tolerância eps
+// (eps é apenas para o eixo y, em x seu valor é sempre 0.001)
 function yCollision(rect1, rect2, eps=0.001) {
+    var xEps = 0.001;
+    var yEps = eps;
+
+    // dimensões do primeiro retângulo
     var l1 = rect1.x;
     var b1 = rect1.y;
     var r1 = l1 + rect1.w;
     var t1 = b1 + rect1.h;
 
+    // dimensão do segundo retângulo
     var l2 = rect2.x;
     var b2 = rect2.y;
     var r2 = l2 + rect2.w;
     var t2 = b2 + rect2.h;
 
     // rect1 em cima de rect2
-    if ((eq(b1, t2, eps)) && (t1 + eps >= b2) && (r1 + eps>= l2) && (l1 <= r2 + eps)) {
+    if ((eq(b1, t2, yEps)) && (t1 + yEps >= b2) && (r1 + xEps>= l2) && (l1 <= r2 + xEps)) {
         if (gDebugging) 
-            console.log("Colisão em y: b1=t2=", b1);
+            console.log("Colisão em y: b1=t2=", b1, t2);
 
         return true;
     }
 
     // rect1 embaixo de rect2
-    if ((eq(b2, t1, eps)) && (t2 + eps >= b1) && (r2 + eps>= l1) && (l2 <= r1 + eps)) {
+    if ((eq(b2, t1, yEps)) && (t2 + yEps >= b1) && (r2 + xEps>= l1) && (l2 <= r1 + xEps)) {
         if (gDebugging) 
-            console.log("Colisão em y: b2=t1=", t1);
+            console.log("Colisão em y: b2=t1=", b2, t1);
 
         return true;
     }
+
     return false;
 }
-
-function overlaps(l1, b1, r1, t1, l2, b2, r2, t2) {
-    if (l1 >= r2 || l2 >= r1) {
-        return false;
-    }
-    if (t1 >= b2 || t2 >= b1) {
-        return false;
-    }
-    return true;
-}
-
 
 // verifica se dois números x,y são iguais com precisão eps
 function eq(x, y, eps) { 

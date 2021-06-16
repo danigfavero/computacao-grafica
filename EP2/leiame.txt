@@ -7,14 +7,13 @@
 
     INTRODUÇÃO
 
-O jogo "paredão" permite que o jogador utilize uma raquete para rebater uma 
-bolinha em uma parede de tijolos. Quando um tijolo é atingido, ele desaparece. 
-O objetivo do jogador é destruir todos os tijolos, sem deixar que a bolinha 
-passe pela raquete (para a borda inferior do canvas). A velocidade com a qual a
- bolinha se move e o tamanho da raquete podem ser alterados por sliders (acima 
-do canvas). Pressione "Jogar" para iniciar o jogo, "Depurar" para executá-lo 
-passo-a-passo (clicando no botão "Passo"), e clique em "Limpar" para retornar 
-às configurações iniciais.
+O jogo "paredão" permite que o jogador utilize uma raquete para rebater uma bolinha em
+uma parede de tijolos. Quando um tijolo é atingido, ele desaparece. O objetivo do jogador
+é destruir todos os tijolos, sem deixar que a bolinha passe pela raquete (para a borda
+inferior do canvas). A velocidade com a qual a bolinha se move e o tamanho da raquete
+podem ser alterados por sliders (acima do canvas). Pressione "Jogar" para iniciar o jogo,
+"Depurar" para executá-lo passo-a-passo (clicando no botão "Passo"), e clique em "Limpar"
+para retornar às configurações iniciais.
 
 ===========================================================
 
@@ -22,27 +21,46 @@ passo-a-passo (clicando no botão "Passo"), e clique em "Limpar" para retornar
 
 - Horas dedicadas por semana: 12h
 - Horas dedicadas no total: 24h
+(Esta aproximação está um tanto grosseira)
 
 ===========================================================
 
     DIFICULDADES
 
-    1. A maior dificuldade encontrada por mim foi compreender a translação de 
-múltiplos objetos. Estive com um bug persistente e não sabia mais o que fazer. 
-Só depois de conversar com uma colega sobre meu problema, que notei que eu 
-estava confundindo as coordenadas (x, y) do WebGL (fixas) com as do Javascript 
-(variáveis). Depois entendi a relação dessas coordenadas com as velocidades, e 
-então foi relativamente simples continuar o EP.
+    1. A maior dificuldade encontrada por mim foi compreender a translação de múltiplos
+objetos. Estive com um bug persistente e não sabia mais o que fazer. Só depois de
+conversar com uma colega sobre meu problema, notei que estava confundindo as coordenadas
+(x, y) do WebGL (fixas) com as do Javascript (variáveis). Depois entendi a relação dessas
+ coordenadas com as velocidades, e então foi relativamente simples
+continuar o EP.
 
-    2. Uma outra dificuldade encontrada foi na detecção de colisões.
+    2. Uma outra dificuldade encontrada foi na detecção de colisões. Por causa da
+velocidade da bolinha, o frame no qual a colisão com um tijolo ocorreria não era de fato
+renderizado, ou seja, a borda da bolinha não se igualava à borda do tijolo. Detectar se a
+bolinha estava dentro do tijolo também era uma tarefa complicada, e mudar o epsilon de
+tolerância na comparação das bordas acabava criando "tijolos invisíveis" em locais onde
+a bolinha não deveria mudar de direção. Infelizmente esta dificuldade não foi totalmente
+resolvida. Com um epsilon de BRICK_WIDTH/2 em x e de BRICK_HEIGHT/2 em y, consegui
+melhorar um pouco o comportamento do jogo, destruindo mais tijolos do que deveria em 
+altas velocidades (ver seção 'BUGS').
 
 ===========================================================
 
     BUGS
 
+    1. Como mencionado na dificuldade '2', a detecção de colisão da bolinha com os
+tijolos está bem problemática. Especificamente a partir da velocidade 0.3 (a 3ª das
+disponíveis), o programa exagera "para mais" as colisões: mesmo que a bolinha ainda não
+tenha propriamente tocado o tijolo, ele já é destruído. O problema vai piorando conforme
+a velocidade da bolinha aumenta. Infelizmente não consegui achar um modo de detectar
+colisões adequadamente, mas o jogo deve funcionar conforme o esperado nas velocidades 0.1
+e 0.2. Preferi exagerar "para mais", assim o jogador fica bem feliz com os bugs e
+consegue vencer mais rápido :-)
+
 ===========================================================
 
     OPCIONAIS
 
+    Nenhum opcional foi feito.
 
 ===========================================================

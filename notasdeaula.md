@@ -1733,3 +1733,149 @@ $$
 - esses parâmetros foram escolhidos para criar o volume canônico de observação (vco) 
 - onde $c/a$ e $c$ são fatores de escala para "corrigir" a forma arbitrária do frustum 
 
+## Iluminação e Sombreamento
+
+### Luz e sua representação
+
+- fótons a um certo nível de energia (cor)
+  - transmitidos por um meio
+  - refletidos ou absorvidos pela superfície de um objeto
+- componentes RGB
+
+- **Fonte de luz**
+  - Podem ter diferentes tamanhos e formas
+  - Podem ter comprimento de onda e direção variáveis
+  - Fonte de luz com as componentes `L = (Lr, Lg, Lb)`
+- **Meio de propagação**
+  - **Objetos opacos**
+    - Reflexão perfeita: 100% da luz que incide no objeto é refletida (espelho)
+    - Reflexão especular: espalhamento de luz — parte refletida e parte absorvida (metais ou superfícies polidas)
+    - Reflexão difusa: reflexão em várias direções
+    - Absorção: pigmentos absorvem parte da energia da luz incidida
+  - **Objetos transparentes**
+    - Transmissão perfeita: 100% transparente
+  - **Objetos translúcidos**
+    - A luz se espalha pelo material
+
+#### Modelo de iluminação global X local
+
+- Luz direta: cone de luz gerado pela fonte de luz
+- Luz indireta: luz refletida pelos objetos da cena
+- Até chegar na câmera, a luz já bateu em diversos locais
+- **Modelo de iluminação global**: procura simular todas as interações da luz com os objetos
+  - Raytracing (muito caro)
+- **Modelo local**: se um objeto for visível, ele é pintado
+  - interação do objeto com a fonte de luz
+  - sombras e oclusão serão tratadas posteriormente
+  - WebGL
+
+#### Componentes de iluminação
+
+- Decomposição da luz em
+  - **Luz ambiente**: claridade espalhada pelo ambiente `La = (Lar, Lag, Lab)`
+  - **Luz pontual**: emitida a partir de um ponto (tem propriedade de cor) `L(P0) = (Lr(P0), Lg(P0), Lb(P0))`
+    - `P0` é a posição da fonte de luz
+
+#### Que pontos são iluminados para uma fonte de luz em $Q$?
+
+Em um modelo de iluminação local, a luz de uma fonte de luz pontual em $Q$ só afeta os pontos "visíveis" de $Q$
+
+O que é visível de $Q$?
+
+- Considere o vetor normal $n$ em um ponto qualquer $P$ na superfície de um objeto
+- Seja o vetor $l$ (light) dado por $P-Q$
+- $P$ é visível se o ângulo de $<n.l>$ for positivo ($>0$)
+
+![lighting](img/lighting.png)
+
+#### A luz sofre atenuação com a distância
+
+Proporcional ao quadrado da distância
+
+- **Física**: $I(P,Q) = I(Q)/|P-Q|^2$
+- **OpenGL**: `I(P,Q) = I(Q) / (a + b.d + c.d)^2`
+  - `d = |P-Q|`
+  - `(a,b,c)` parâmetros de atenuação
+  - Por *default*: `(a,b,c) = (1,0,0)` (sem atenuação)
+
+#### Fontes de luz direcionais
+
+- Fonte de luz colocada ao infinito, com coordenada homogênea `0` (sol ao meio dia)
+- Raios de luz de fontes no infinito são paralelos, o que simplifica o cálculo de iluminação sobre superfícies planas (mesmo vetor $\vec{l}$  para todos os pontos)
+- ***Spotlight***: luz intensa em uma direção, com atenuação proporcional ao ângulo de abertura do raio
+  - Pontual em $Q$, mas com uma abertura $\alpha$, gerando um cone ao redor do vetor $\vec{v}$
+
+### Modelo de iluminação de Phong
+
+- modelar como a luz é refletida dos objetos para o observador
+- componentes:
+  - **Emissão** — objeto com brilho próprio
+  - **Reflexão ambiente** — reflexões indiretas
+  - **Reflexão de difusão** — luz de espalha muito
+  - **Reflexão especular** — luz se espalha dentro de um certo ângulo
+- todos os objetos são opacos
+
+#### No OpenGL
+
+Vamos criar componentes
+
+- `La`: luz ambiente
+- `Ld`: luz difusa
+- `Ls`: luz especular
+
+Cada componente é uma tripla RGB (ou até mesmo RGBA)
+
+Em geral, `Ld` e `Ls` são definidas com valores iguais
+
+#### Cor
+
+`C = (Cr, Cg, Cb)` propriedade do objeto (pigmento)
+
+- `Cr` é a fração da componente de luz vermelha refletida pelo objeto (idem para `Cg` e `Cb`)
+
+- Quando uma luz `L = (Lr, Lg, Lb)` incide sobre um objeto de cor `C = (Cr, Cg, Cb)`, a intensidade  de luz refletida é dada pelo produto:
+
+  `L * C = (LrCr, LgCg, LbCb)`
+
+- Note que essa é uma multiplicação componente a componente
+
+O objeto também tem cor definida por 3 componentes `C = (Ca, Cd, Cs)`
+
+- A cor resultante é definida pela fonte de luz (`L`) e pela cor do objeto
+
+#### Vetores relevantes para o sombreamento
+
+Fonte pontual $Q$, ponto no objeto $P$, câmera em $E$
+
+- $\vec{n}$ **(normal)**: perpendicular e **para fora** da superfície
+
+  - toda superfície até agora foi definida por um triângulo, definindo um plano — para obter a normal, é uma boa ideia fazer produto vetorial
+
+    ![normal para fora](img/normal-para-fora.png)
+
+  - Para um objeto tridimensional, fornecemos os pontos do plano (triângulo) na ordem anti-horária: o produto vetorial deve ser positivo, portanto "para fora" — precisamos nos preocupar com a ordem dos vértices quando construímos o triângulos, mantendo sempre a normal para fora 
+
+- $\vec{v}$ **(view)**: aponta para o observador
+
+  - `v <- normalize(E-P)`
+
+- $\vec{l}$ **(light)**: aponta para a fonte de luz  
+
+  - `l <- normalize(Q-P)`
+
+- $\vec{r}$ **(reflection)**: indica a direção de reflexão 
+
+  - em relação à normal, tem o mesmo ângulo $\theta$ da incidência)
+  - decompõe o vetor $l$, obtendo-os com seno e cosseno $l = l_x + l_y$
+    - $l_x = \sin\theta <n.l>$
+    - $l_y = \cos\theta <n.l>$
+  - portanto, $l_x = l - l_y$ e então $r = l - 2l_x$
+  - $r = l - 2(l - l_y) = 2l_y - l = 2(n.l) - l$
+  - `r = 2 * dot(n, l) - l`
+
+- $\vec{h}$ **(halfway)**: vetor entre $l$ e $v$ 
+
+  - $2h = l + v$
+  - `h = normalize(l + v)` (não precisa dividir por 2 porque já foi normalizado)
+
+  

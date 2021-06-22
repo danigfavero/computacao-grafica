@@ -1878,4 +1878,123 @@ Fonte pontual $Q$, ponto no objeto $P$, câmera em $E$
   - $2h = l + v$
   - `h = normalize(l + v)` (não precisa dividir por 2 porque já foi normalizado)
 
-  
+#### Equações de iluminação
+
+- O modelo de iluminação de Phong assume que é possível modelar qualquer superfície (sem textura) através da combinação das componentes difusa, especular e ambiente
+- Por enquanto não vamos pensar na componente de emissão
+
+#### Luz ambiente
+
+`Ia = ka . La . C`
+
+- `C`: cor do objeto
+- `Ia`: intensidade de luz ambiente refletida
+- `ka`: coeficiente de reflexão ambiente de superfície
+  - fração da luz ambiente que é refletida pela superfície
+  - `0 <= ka <= 1`
+
+#### Componente difusa
+
+- reflete a luz uniformemente em todas as regiões
+
+  - micro irregularidades na superfície
+  - "Refletor lamberciano"
+
+- A quantidade de luz refletida em um ponto vai depender da posição desse ponto com relação a fonte de luz (vetor de luz `l`), e a normal (`n`) a superfície naquele ponto (**lei dos cossenos de Lambert)**
+
+  `dA cos(theta) = n.l` (o ângulo vai dizer o quão intensa será a luz refletida — note que quanto mais inclinada a superfície em relação à luz incidente, mais área será coberta pela iluminação e, consequentemente, ela será menos intensa) 
+
+- Seja `kd`  o coeficiente de reflexão de difusão da superfície, então `Id`, a componente difusa, é dado por:
+
+  ````
+  Id = kd max(0, n.l) Ld C
+  ````
+
+#### Componente especular
+
+- toda luz que chega é refletida, mantendo a orientação de espelho (`n - l = r - n`, ângulos iguais)
+  - dependendo do ângulo, reflete mais luz
+- poderíamos usar `r`
+  - quando `r//v`, obtemos o máximo de especularidade (dado que o olho esteja dentro de um cone limitado)
+- mas o OpenGL vai usar o `h` por ser mais eficiente
+  - `n.h` é máximo quando o observador é colocado na direção de `r` (direção de reflexão: `r~v` implica em `h~n`), e assim, `n.h` pode ser usado para modelar a intensidade da componente especular
+
+- Seja `ks` o coeficiente de reflexão especular e `alpha` o brilho (*shininess*, dado pelo tamanho do cone de visão — quanto maior o `alpha`, menor o cone, atenuação mais rápida), quando `alpha` (> 1) aumenta, o ângulo de reflexão diminui, assim como o tamanho o ponto brilhante correspondente. 
+
+  - O brilho pode ter valores bem grandes para superfícies altamente especulares
+  - `Is`: componente especular
+
+  ````
+  Is = ks [max (0, n.h) ^ (alpha)] Ls
+  ````
+
+  - Obs: `Id` e `Is` estão sujeitos a atenuação, pois dependem da distância do objeto a fonte de luz
+  - Note que a componente especular não depende da cor
+
+#### Portanto...
+
+`I = Ie + Ia + (Id + Is) / (a + bd + cd^2)`
+
+Obs: para múltiplas fontes de luz, some as intensidades de cada fonte
+
+## De volta ao código
+
+- Cubo de lado 1, centrado em (0, 0, 0)
+
+Vamos usar um objeto para representar vértices:
+
+````js
+var position;
+
+// a, b, c, d é dado em ordem anti-horária
+function quad(a, b, c, d) {
+    // primeiro triângulo
+    position.push(a);
+    position.push(b);
+    position.push(c);
+    
+    // segundo triângulo
+    position.push(a);
+    position.push(c);
+    position.push(d);   
+}
+````
+
+Definindo os vértices, vamos definir cada face do cubo (quadrado):
+
+````js
+// vec4: estamos trabalhando em 3d (x, y, z) e temos a coordenada homogênea
+var vertices = [
+    vec4(-0.5, 0.5, 0.5, 1.0),
+    vec4( 0.5, 0.5, 0.5, 1.0),
+    .
+    .
+    .
+]
+
+// uma das 6 faces:
+quad(vertices[0], vertices[1], vertices[2], vertices[3]);
+````
+
+**Definindo os ângulos**
+
+- $\theta$ de altura
+- $\varphi$ de azimute
+- $(r \sin \theta \cos \varphi, r \sin \theta \sin \varphi)$
+
+**Criação do frustum**
+
+- `zNear, zFar`
+- `fov`
+- `a = W/H` ~ `perspective(fovy, a, zNear, zFar)`
+
+**Matriz de projeção perspectiva e Frame de coordenadas da câmera**
+
+- passados como uniformes na função`render()`
+
+**Bibliotecas**
+
+- Biblioteca do Angel (Interactive Computer Graphics): `MVnew.js` 
+  - `flatten()` transforma a matriz de pontos naquele vetor linear para ser passado ao buffer
+  - `perspective(fovy, aspectRatio, near, far)`: matriz de projeção perspectiva
+  - `lookAt(eye, at, up)`: frame de coordenadas da câmera

@@ -1998,3 +1998,150 @@ quad(vertices[0], vertices[1], vertices[2], vertices[3]);
   - `flatten()` transforma a matriz de pontos naquele vetor linear para ser passado ao buffer
   - `perspective(fovy, aspectRatio, near, far)`: matriz de projeção perspectiva
   - `lookAt(eye, at, up)`: frame de coordenadas da câmera
+
+### Como desenhar uma esfera?
+
+Centrada na origem, com raio `r=1`
+
+- Começa com um tetraedro circunscrito na esfera
+- Para cada face, quebre-a em 4 triângulos utilizando pontos médios, e os normalize (jogando os vértices para a esfera)
+- Continue quebrando os novos triângulos em outros 4 triângulos, até que a esfera esteja suave o suficiente
+
+````pseudocode
+tetraedro(A, B, C, D)
+
+posicoes <- []
+normais <- [] // cada vértice tem sua normal
+
+function triangle(a, b, c) {
+	t1 <- b - a
+	t2 <- c - a
+	n = cross(t1, t2)
+	
+	posicoes.push(a)
+	posicoes.push(b)
+	posicoes.push(c)
+	
+	// uma normal para cada vértice
+	// necessário para calcular sombreamento (phong)
+	normais.push(n)
+	normais.push(n)
+	normais.push(n)
+}
+````
+
+### Onde calcular cada componente da iluminação? 
+
+`I = ka * La * C + Kd * Ld * C * max(0, n*l) + Ks * Ls * max(0, n*h)^alpha`
+
+**Fragment:** 
+
+  - Cor do obj (uniform)
+  - Constantes de iluminação, alph (uniforms)
+  - Mapa dos vetores da luz (normal e L) (varying)
+
+**Vertex:** 
+
+  - Posição das luzes (uniforms)
+  - Mapa dos vetores da luz (normal e L) (varying)
+
+## Mapeamento de Texturas
+
+- O modelo de Phong é ideal para objetos lisos
+- Podemos tentar definir padrões de textura com funções matemáticas
+- Mas como mapear uma imagem em um objeto tridimensional?
+  - Como "embrulhar" uma esfera com um plano?
+
+### IDEIA: mapear a textura
+
+- Carregar uma foto e mapear suas coordenadas nas coordenadas do objeto
+- A imagem como uma matrix NxN com valores de RGB (tipicamente N potência de 2)
+  - Texels: texture elements (para diferenciar de pixels)
+
+### Espaço de texturas
+
+- A imagem como uma função que mapeia um ponto `(s,t)` no espaço de textura para um valor RGB
+- Dado um par `(s,t)`, a textura define um valor RGB de `T(s,t)`
+
+#### Uma única cópia
+
+Mapeamento de eixos
+
+`T(s,t) = Im[floor( (1-t)n )]`
+
+#### Múltiplas cópias
+
+Para qualquer valor de `(s,t)`: utilizar o módulo
+
+`T(s,t) = Im [ floor(1-t)N % N ]`
+
+`[ floor(SN) % N ]`
+
+### Parametrizações
+
+- Função que mapeie um ponto `(s,t)` para um ponto `(x,y,z)`
+  - Função de embrulho `W(s,t)`
+  - Na verdade a gente quer algo como um `W^-1` (a inversa do embrulho)
+
+#### Exemplo: parametrização de uma esfera
+
+Raio unitário, centro na origem
+
+seja $\theta \in [0, 2 \pi]$ um ângulo no plano `xy` e $\varphi \in [0, \pi]$ um ângulo no plano `zy`
+
+- $\varphi = 0 \implies$ polo norte
+- $\varphi = \pi \implies$ polo sul
+
+Coordenadas
+
+- $x(\theta, \varphi) = \sin \varphi \times \cos \theta$
+- $y(\theta, \varphi) = \sin \varphi \times \sin \theta$
+- $z(\theta, \varphi) = \cos \varphi$
+
+Inverso das coordenadas
+
+- $\varphi = \arccos(z)$
+- $\theta = \arctan(y/x)$
+
+Mapeamento
+
+- $s = \theta/2\pi$
+- $t = 1 - \phi/\pi$
+
+### Mapeamento inverso
+
+Sejam `IW(u,v)` e a parametrização conhecidas
+
+- **Projetar** os cantos do pixel a ser renderizado para a superfície do objeto
+  - ponto `pi`
+- **Parametrizar:** calcular os parâmetros `(u,v)` para cada `pi`
+- **Desembrulhar:** aplicar o mapeamento inverso de cada `pi`
+- **Filtrar:** tirar uma média local dos texels que "cobrem" o pixel
+
+## Mapeamento do ambiente
+
+Em superfícies altamente polidas é comum observar os objetos da cena refletidos 
+
+- ray-tracing
+- mapeamento de ambiente (EM) ou mapeamento de reflexões
+
+### Reflexão X Textura
+
+- Quando movemos a câmera, a textura permanece constante sobre a superfície
+- Reflexões dependem da posição e orientação da superfície do objeto e do observador
+- Em que condições podemos aproximar reflexões como padrões de textura?
+
+### Cálculo de reflexões
+
+- Ray-tracing
+  - caro
+
+- Simplificação para EM:
+  - assumir que a cena está distante
+  - superfície refletora pequena
+
+### Processo
+
+1. Criação
+2. Cálculo do vetor de reflexão
+

@@ -1,0 +1,30 @@
+===========================================================
+    EP3 - Simulador de vôo - Parte I
+
+    Autor: Daniela Gonzalez Favero
+    Data: 14 de julho de 2021
+===========================================================
+
+    O QUE FOI FEITO
+
+Indique brevemente o que você fez.
+
+===========================================================
+
+    OPCIONAIS
+
+Caso tenha feito algo diferente (ou a mais como partes opcionais) do que foi proposto,
+descreva.
+
+===========================================================
+
+    BUGS
+
+Descreva bugs que você conhecer no seu programa.
+
+===========================================================
+
+    DEPENDÊNCIAS
+
+Descreva também as dependências, outros arquivos e módulos usados em seu programa, caso
+houver.

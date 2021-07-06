@@ -45,6 +45,7 @@ window.onload = function main() {
 
     // Criando objetos na cena
     ocean();
+    island();
 
     // Seta buffers
     var cBuffer = gl.createBuffer();
@@ -88,7 +89,7 @@ function render() {
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawArrays(gl.TRIANGLES, 0, 60006);
     requestAnimationFrame(render);
 }
 
@@ -198,8 +199,38 @@ function ocean() {
     var c = vec4(xmax, ymin, 0.0, 1.0);
     var d = vec4(xmax, ymax,  0.0, 1.0);
 
-    var color = vec4(0.0, 0.0, 1.0, 1.0); // FIXME
+    var color = matAmbient[0]; // FIXME
 
     rect(a, b, c, d, color);
     if (DEBUG) console.log("Oceano: ", positionsArray);
+}
+
+function island() {
+    var materials = [5, 10, 20, 30, 40]; // talvez se torne uma global
+
+    var [xmin, ymin, xmax, ymax] = cena.ilha;
+
+    for (var i = xmin; i < xmax; i++) {
+        for (var j = ymin; j < ymax; j++) {
+            var z = cena.mapa[i + 50][j + 50];
+
+            var a = vec4(  i, j+1, z, 1.0);
+            var b = vec4(  i,   j, z, 1.0);
+            var c = vec4(i+1,   j, z, 1.0);
+            var d = vec4(i+1, j+1, z, 1.0);
+
+            var color = matAmbient[getMaterial(z, materials)];
+            rect(a, b, c, d, color);
+        }
+    }
+}
+
+function getMaterial(height, materials) {
+    for (var i = 0; i < materials.length; i++) {
+        if (height < materials[i]) {
+            return i;
+        }
+    }
+    console.log(i)
+    return i;
 }

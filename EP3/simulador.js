@@ -107,7 +107,7 @@ window.onload = function main() {
         gl.getUniformLocation(program, "uLightPosition"),
         flatten(lightPosition)
         );
-    gl.uniform1f( 
+    gl.uniform1fv( 
         gl.getUniformLocation(program, "uShininess"),
         matShininess
         );
@@ -217,13 +217,9 @@ void main() {
     // ajustes da câmera e iluminação
     vec3 light;
     vec3 pos = (uModelViewMatrix * aPosition).xyz;
-    if (uLightPosition.a == 0.0) {
-        L = - normalize(uLightPosition.xyz);
-    } else {
-        L = normalize(uLightPosition.xyz - pos.xyz);
-    }
 
-    E = - normalize(pos);
+    L = - normalize(uLightPosition.xyz);
+    E = normalize(pos);
     N = normalize(uNormalMatrix * aNormal.xyz);
     gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
 
@@ -261,7 +257,7 @@ void main() {
     vec4 diffuse = Kd * uDiffuseProduct[matIndex];
 
     float Ks = pow(max(dot(N, H), 0.0), uShininess[matIndex]);
-    vec4 specular = Ks * uSpecularProduct[matIndex];
+    vec4 specular =  Ks * uSpecularProduct[matIndex];
 
     if (dot(L, N) < 0.0) {
         specular = vec4(0.0, 0.0, 0.0, 1.0);
@@ -297,8 +293,8 @@ function triangle(a, b, c) {
     normalsArray.push(normal);
 
     positionsArray.push(a);
-    positionsArray.push(b);
     positionsArray.push(c);
+    positionsArray.push(b);
 }
 
 /* ==================================================================

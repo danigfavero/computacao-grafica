@@ -2,7 +2,7 @@
     EP3 - Simulador de vôo - Parte I
 
     Autor: Daniela Gonzalez Favero
-    Data: 14 de julho de 2021
+    Data: 09 de julho de 2021
 */
 "use strict";
 
@@ -10,7 +10,7 @@
 var canvas;
 var gl;
 
-// camera
+// câmera
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 var nMatrix, nMatrixLoc;
@@ -82,7 +82,7 @@ window.onload = function main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(positionsArray), gl.STATIC_DRAW);
 
-    // varyings e uniformes
+    // Varyings e uniformes
     var positionLoc = gl.getAttribLocation( program, "aPosition");
     gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(positionLoc);
@@ -125,6 +125,7 @@ window.onload = function main() {
 function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Câmera e perspectiva
     eye = vec3(
         radius*Math.sin(theta)*Math.cos(phi),
         radius*Math.sin(theta)*Math.sin(phi), 
@@ -139,6 +140,7 @@ function render() {
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
     gl.uniformMatrix3fv(nMatrixLoc, false, flatten(nMatrix));
 
+    // Desenha
     var nOceanVertices = 6;
     var nIslandVertices = 6 * cena.mapa.length * cena.mapa[0].length;
     gl.drawArrays(gl.TRIANGLES, 0, nOceanVertices + nIslandVertices);
@@ -150,6 +152,7 @@ function render() {
 */
 function setInterface() {
 
+    // raio
     document.getElementById("Button0").onclick = function() {
         radius *= 2.0;
         if (DEBUG) console.log("radius:", radius);
@@ -160,6 +163,7 @@ function setInterface() {
         if (DEBUG) console.log("radius:", radius);
     };
 
+    // theta
     document.getElementById("Button2").onclick = function() {
         theta += dr;
         if (DEBUG) console.log("theta:", radius);
@@ -170,6 +174,7 @@ function setInterface() {
         if (DEBUG) console.log("theta:", radius);
     };
 
+    // phi
     document.getElementById("Button4").onclick = function() {
         phi += dr;
         if (DEBUG) console.log("phi:", radius);
@@ -180,6 +185,7 @@ function setInterface() {
         if (DEBUG) console.log("phi:", radius);
     };
 
+    // subdivisões
     document.getElementById("Button6").onclick = function() {
         if (DEBUG) console.log("oops, este opcional não foi implementado");
     };
@@ -188,6 +194,7 @@ function setInterface() {
         if (DEBUG) console.log("oops, este opcional não foi implementado");
     };
 
+    // escala
     document.getElementById("Button8").onclick = function() {
         if (DEBUG) console.log("oops, este opcional não foi implementado");
     };
@@ -293,8 +300,8 @@ function triangle(a, b, c) {
     normalsArray.push(normal);
 
     positionsArray.push(a);
-    positionsArray.push(c);
     positionsArray.push(b);
+    positionsArray.push(c);
 }
 
 /* ==================================================================
@@ -306,7 +313,7 @@ function drawOcean() {
     var a = vec4(xmin, ymax, 0.0, 1.0);
     var b = vec4(xmin, ymin, 0.0, 1.0);
     var c = vec4(xmax, ymin, 0.0, 1.0);
-    var d = vec4(xmax, ymax,  0.0, 1.0);
+    var d = vec4(xmax, ymax, 0.0, 1.0);
 
     rect(a, b, c, d);
     if (DEBUG) console.log("Oceano criado dentro dos limites: ", 

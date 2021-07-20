@@ -1,0 +1,32 @@
+===========================================================
+    EP4 - Simulador de vôo - Parte II
+
+    Autor: Daniela Gonzalez Favero
+    Data: 30 de julho de 2021
+===========================================================
+
+    O QUE FOI FEITO
+
+Comecei a partir do código feito no EP3.
+
+===========================================================
+
+    OPCIONAIS
+
+Nenhum opcional foi feito.
+
+===========================================================
+
+    BUGS
+
+Não encontrei bugs no programa.
+
+===========================================================
+
+    DEPENDÊNCIAS
+
+O arquivo 'simulador.html' renderiza a página HTML, utilizando as dependências:
+    - 'simulador.js', que contém o código desenvolvido por mim neste EP;
+    - 'config.js', com os dados de configuração fornecidos com o enunciado;
+    - 'webglUtils.js', que compila e linka os shaders utilizados;
+    - 'MVnew.js', uma biblioteca para lidar com matrizes e vetores.

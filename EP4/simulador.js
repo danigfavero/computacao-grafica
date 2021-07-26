@@ -24,9 +24,9 @@ var eye;
 // Camera position: modelview e projection
 var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-var radius = 400;  // posição inicial do olho: z=400
-var theta = 0.8;   // theta inicial: 0.0
-var phi = 1.0;     // phi inicial: 0.0
+var radius = 400;
+var theta = 0.0;
+var phi = 0.0;
 var dr = 5.0 * Math.PI/180.0;
 
 // iluminação
@@ -90,14 +90,14 @@ function render() {
     projectionMatrix = perspective(fovy, aspect, near, far);
     nMatrix = normalMatrix(modelViewMatrix, true);
 
-    // PROGAMA DA CENA
+    // PROGRAMA DA CENA
     // Usa:
     gl.useProgram(program);
     renderSceneShaders();
 
     // Desenha:
     var nOceanVertices = 6;
-    var nIslandVertices = 6 * cena.mapa.length * cena.mapa[0].length;
+    var nIslandVertices = 6 * (cena.mapa.length - 1) * (cena.mapa[0].length - 1);
     gl.drawArrays(gl.TRIANGLES, 0, nOceanVertices + nIslandVertices);
 
     // PROGAMA DA NAVE

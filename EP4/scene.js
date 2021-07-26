@@ -100,8 +100,8 @@ function drawOcean() {
 function drawIsland() {
     var [xmin, ymin, xmax, ymax] = cena.ilha;
 
-    for (var x = xmin; x < xmax-1; x++) {
-        for (var y = ymin; y < ymax-1; y++) {
+    for (var x = xmin; x < xmax - 1; x++) {
+        for (var y = ymin; y < ymax - 1; y++) {
             var [i, j] = [x + 50, y + 50];
 
             var a = vec4(  x, y+1,   cena.mapa[i][j+1], 1.0);

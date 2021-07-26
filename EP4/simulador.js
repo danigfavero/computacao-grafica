@@ -25,13 +25,17 @@ var eye;
 var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 var radius = 400;  // posição inicial do olho: z=400
-var theta = 0.8;
-var phi = 1.0;
+var theta = 0.8;   // theta inicial: 0.0
+var phi = 1.0;     // phi inicial: 0.0
 var dr = 5.0 * Math.PI/180.0;
 
 // iluminação
 var ctm;
 var ambientColor, diffuseColor, specularColor;
+
+// estruturas/buffers
+var positionsArray = [];
+var normalsArray = [];
 
 // constantes
 const DEBUG = true;
@@ -86,12 +90,12 @@ function render() {
     projectionMatrix = perspective(fovy, aspect, near, far);
     nMatrix = normalMatrix(modelViewMatrix, true);
 
-    // // PROGAMA DA CENA
-    // // Usa:
+    // PROGAMA DA CENA
+    // Usa:
     gl.useProgram(program);
     renderSceneShaders();
 
-    // // Desenha:
+    // Desenha:
     var nOceanVertices = 6;
     var nIslandVertices = 6 * cena.mapa.length * cena.mapa[0].length;
     gl.drawArrays(gl.TRIANGLES, 0, nOceanVertices + nIslandVertices);
@@ -103,7 +107,7 @@ function render() {
 
     // Desenha:
     var nPlaneVertices = 6;
-    gl.drawArrays(gl.TRIANGLES, 0, nPlaneVertices);
+    gl.drawArrays(gl.TRIANGLES, nOceanVertices + nIslandVertices, nPlaneVertices);
 
     // Animação
     // requestAnimationFrame(render);
@@ -202,4 +206,25 @@ function setInterface() {
                 console.log("Zera velocidades de rotação");
         }
     });
+}
+
+/* ==================================================================
+    Funções de desenho
+*/
+// desenha triângulo:
+// recebe 3 vértices de um triângulo
+// monta o triângulo voltado para "fora"
+function triangle(a, b, c) {
+    var t1 = subtract(b, a);
+    var t2 = subtract(c, a);
+    var normal = normalize(cross(t2, t1));
+    normal = vec4(normal[0], normal[1], normal[2], 0.0);
+
+    normalsArray.push(normal);
+    normalsArray.push(normal);
+    normalsArray.push(normal);
+
+    positionsArray.push(a);
+    positionsArray.push(b);
+    positionsArray.push(c);
 }

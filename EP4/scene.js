@@ -6,8 +6,6 @@
 */
 
 // estruturas/buffers
-var positionsArray = [];
-var normalsArray = [];
 var materials = [5.0, 10.0, 20.0, 30.0, 40.0, 100.0];
 var ambientProducts = [];
 var diffuseProducts = [];
@@ -75,7 +73,7 @@ function renderSceneShaders() {
         gl.getUniformLocation(program, "uShininess"),
         matShininess
         );
-        
+
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
     gl.uniformMatrix3fv(nMatrixLoc, false, flatten(nMatrix));
@@ -124,24 +122,6 @@ function drawIsland() {
 function rect(a, b, c, d) {
     triangle(a, b, c);
     triangle(a, c, d);
-}
-
-// desenha triângulo:
-// recebe 3 vértices de um triângulo
-// monta o triângulo voltado para "fora"
-function triangle(a, b, c) {
-    var t1 = subtract(b, a);
-    var t2 = subtract(c, a);
-    var normal = normalize(cross(t2, t1));
-    normal = vec4(normal[0], normal[1], normal[2], 0.0);
-
-    normalsArray.push(normal);
-    normalsArray.push(normal);
-    normalsArray.push(normal);
-
-    positionsArray.push(a);
-    positionsArray.push(b);
-    positionsArray.push(c);
 }
 
 

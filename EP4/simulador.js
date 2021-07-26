@@ -13,6 +13,9 @@ var gl;
 // animação
 var gInterval;
 
+// shaders
+var program, program2;
+
 // câmera
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
@@ -22,8 +25,8 @@ var eye;
 // Camera position: modelview e projection
 var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-var radius = 400;  // posição inicial do olho: z=400
-var theta = 0.0;
+var radius = 500;  // posição inicial do olho: z=400
+var theta = 0.8;
 var phi = 0.0;
 var dr = 5.0 * Math.PI/180.0;
 
@@ -38,7 +41,6 @@ var materials = [5.0, 10.0, 20.0, 30.0, 40.0, 100.0];
 
 // constantes
 const DEBUG = true;
-const BG_COLOR = [0.0, 0.0, 0.0, 1.0];
 
 // Valores ASCII
 const [A, C, D, I, J, K, L, O, S, W, X, Z] = [65, 67, 68, 73, 74, 75, 76, 79, 83, 87, 88, 90];
@@ -54,12 +56,8 @@ window.onload = function main() {
     if (!gl) alert("WebGL 2.0 isn't available");
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(BG_COLOR[0], BG_COLOR[1], BG_COLOR[2], BG_COLOR[3]);
+    gl.clearColor(CYAN[0], CYAN[1], CYAN[2], CYAN[3]);
     gl.enable(gl.DEPTH_TEST);
-
-    //  Inicializa os shaders e seus atributos
-    var program = makeProgram(gl, vertexShaderSource, fragmentShaderSource);
-    gl.useProgram(program);
 
     // Pré-calcula alguns produtos
     var ambientProducts = [];
@@ -75,6 +73,11 @@ window.onload = function main() {
     // Criando objetos na cena
     drawOcean();
     drawIsland();
+    drawPlane();
+
+    // Inicializa os shaders e seus atributos
+    program = makeProgram(gl, vertexShaderSource, fragmentShaderSource);
+    gl.useProgram(program);
 
     // Seta buffers
     var nBuffer = gl.createBuffer();
@@ -119,12 +122,20 @@ window.onload = function main() {
         matShininess
         );
 
+    // Inicializa os shaders da nave
+    // program2 = makeProgram(gl, vertexShaderSource2, fragmentShaderSource2);
+    // gl.useProgram(program2);
+
     // UI
     setInterface();
 
     // Desenha
     render();
 };
+
+function initProgram() {
+
+}
 
 /* ==================================================================
     Rendering
@@ -151,6 +162,9 @@ function render() {
     var nOceanVertices = 6;
     var nIslandVertices = 6 * cena.mapa.length * cena.mapa[0].length;
     gl.drawArrays(gl.TRIANGLES, 0, nOceanVertices + nIslandVertices);
+
+    var nPlaneVertices = 6;
+    gl.drawArrays(gl.TRIANGLES, 0, nPlaneVertices);
     requestAnimationFrame(render);
 }
 
@@ -249,76 +263,6 @@ function setInterface() {
     });
 }
 
-/* ==================================================================
-    Shaders
-*/
-var vertexShaderSource = `#version 300 es
-
-in vec4 aPosition;
-in vec4 aNormal;
-out vec3 N, L, E;
-flat out int matIndex;
-
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
-uniform vec4 uLightPosition;
-uniform mat3 uNormalMatrix;
-
-void main() {
-
-    // ajustes da câmera e iluminação
-    vec3 light;
-    vec3 pos = (uModelViewMatrix * aPosition).xyz;
-
-    L = - normalize(uLightPosition.xyz);
-    E = normalize(pos);
-    N = normalize(uNormalMatrix * aNormal.xyz);
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
-
-    // define cor de cada material
-    int i;
-    float materials[6] = float[6](5.0, 10.0, 20.0, 30.0, 40.0, 100.0);
-    for (i = 0; i < 6; i++) {
-        if (aPosition.z < materials[i]) {
-            break;
-        }
-    }
-    matIndex = i;
-}
-`
-
-var fragmentShaderSource = `#version 300 es
-
-precision mediump float;
-
-uniform vec4 uAmbientProduct[6];
-uniform vec4 uDiffuseProduct[6];
-uniform vec4 uSpecularProduct[6];
-uniform float uShininess[6];
-
-in vec3 N, L, E;
-flat in int matIndex;
-out vec4 fColor;
-
-void main() {
-
-    vec3 H = normalize(L + E);
-    vec4 ambient = uAmbientProduct[matIndex];
-
-    float Kd = max(dot(L, N), 0.0);
-    vec4 diffuse = Kd * uDiffuseProduct[matIndex];
-
-    float Ks = pow(max(dot(N, H), 0.0), uShininess[matIndex]);
-    vec4 specular =  Ks * uSpecularProduct[matIndex];
-
-    if (dot(L, N) < 0.0) {
-        specular = vec4(0.0, 0.0, 0.0, 1.0);
-    }
-
-    fColor = ambient + diffuse + specular;
-    fColor.a = 1.0;
-}
-`
 
 /* ==================================================================
     Funções para desenhar primitivas geométricas
@@ -347,40 +291,4 @@ function triangle(a, b, c) {
     positionsArray.push(a);
     positionsArray.push(b);
     positionsArray.push(c);
-}
-
-/* ==================================================================
-    Funções de criação dos elementos da cena
-*/
-// desenha o oceano com as coordenadas disponíveis no arquivo config.js
-function drawOcean() {
-    var [xmin, ymin, xmax, ymax] = cena.oceano;
-    var a = vec4(xmin, ymax, 0.0, 1.0);
-    var b = vec4(xmin, ymin, 0.0, 1.0);
-    var c = vec4(xmax, ymin, 0.0, 1.0);
-    var d = vec4(xmax, ymax, 0.0, 1.0);
-
-    rect(a, b, c, d);
-    if (DEBUG) console.log("Oceano criado dentro dos limites: ", 
-                            [xmin, ymin, xmax, ymax] );
-}
-
-// desenha a ilha com as coordenadas disponíveis no arquivo config.js
-function drawIsland() {
-    var [xmin, ymin, xmax, ymax] = cena.ilha;
-
-    for (var x = xmin; x < xmax-1; x++) {
-        for (var y = ymin; y < ymax-1; y++) {
-            var [i, j] = [x + 50, y + 50];
-
-            var a = vec4(  x, y+1,   cena.mapa[i][j+1], 1.0);
-            var b = vec4(  x,   y,     cena.mapa[i][j], 1.0);
-            var c = vec4(x+1,   y,   cena.mapa[i+1][j], 1.0);
-            var d = vec4(x+1, y+1, cena.mapa[i+1][j+1], 1.0);
-
-            rect(a, b, c, d);
-        }
-    }
-    if (DEBUG) console.log("Ilha criada dentro dos limites: ", 
-                            [xmin, ymin, xmax, ymax] );
 }

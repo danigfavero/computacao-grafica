@@ -5,8 +5,85 @@
     Data: 30 de julho de 2021
 */
 
+// estruturas/buffers
+var positionsArray = [];
+var normalsArray = [];
+var materials = [5.0, 10.0, 20.0, 30.0, 40.0, 100.0];
+var ambientProducts = [];
+var diffuseProducts = [];
+var specularProducts = [];
+
+// câmera
+var modelViewMatrixLoc, projectionMatrixLoc; 
+var nMatrixLoc;
+
 /* ==================================================================
-    Funções de criação dos elementos da cena
+    Função de inicialização dos shaders
+*/
+function initSceneShaders() {
+    // Pré-calcula alguns produtos
+    for (var i = 0; i < materials.length; i++) {
+        ambientProducts.push(mult(lightAmbient, matAmbient[i]));
+        diffuseProducts.push(mult(lightDiffuse, matDiffuse[i]));
+        specularProducts.push(mult(lightSpecular, matSpecular[i]));
+    }
+
+    // Inicializa os shaders
+    program = makeProgram(gl, vertexShaderSource, fragmentShaderSource);
+
+    // Seta buffers
+    var nBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW);
+
+    var normalLoc = gl.getAttribLocation(program, "aNormal");
+    gl.vertexAttribPointer(normalLoc, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(normalLoc);
+
+    var vBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(positionsArray), gl.STATIC_DRAW);
+}
+
+function renderSceneShaders() {
+    // Varyings e uniformes
+    var positionLoc = gl.getAttribLocation(program, "aPosition");
+    gl.vertexAttribPointer(positionLoc, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(positionLoc);
+
+    modelViewMatrixLoc = gl.getUniformLocation(program, "uModelViewMatrix");
+    projectionMatrixLoc = gl.getUniformLocation(program, "uProjectionMatrix");
+    nMatrixLoc = gl.getUniformLocation(program, "uNormalMatrix");
+
+    gl.uniform4fv(
+        gl.getUniformLocation(program,"uAmbientProduct"),
+        flatten(ambientProducts)
+        );
+    gl.uniform4fv(
+        gl.getUniformLocation(program, "uDiffuseProduct"),
+        flatten(diffuseProducts)
+        );
+    gl.uniform4fv(
+        gl.getUniformLocation(program, "uSpecularProduct"),
+        flatten(specularProducts)
+        );
+    gl.uniform4fv(
+        gl.getUniformLocation(program, "uLightPosition"),
+        flatten(lightPosition)
+        );
+    gl.uniform1fv( 
+        gl.getUniformLocation(program, "uShininess"),
+        matShininess
+        );
+        
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+    gl.uniformMatrix3fv(nMatrixLoc, false, flatten(nMatrix));
+}
+
+
+/* ==================================================================
+    Funções de desenho
 */
 // desenha o oceano com as coordenadas disponíveis no arquivo config.js
 function drawOcean() {
@@ -39,6 +116,32 @@ function drawIsland() {
     }
     if (DEBUG) console.log("Ilha criada dentro dos limites: ", 
                             [xmin, ymin, xmax, ymax] );
+}
+
+// desenha retângulo:
+// recebe 4 vértices de uma face
+// monta os dois triângulos voltados para "fora"
+function rect(a, b, c, d) {
+    triangle(a, b, c);
+    triangle(a, c, d);
+}
+
+// desenha triângulo:
+// recebe 3 vértices de um triângulo
+// monta o triângulo voltado para "fora"
+function triangle(a, b, c) {
+    var t1 = subtract(b, a);
+    var t2 = subtract(c, a);
+    var normal = normalize(cross(t2, t1));
+    normal = vec4(normal[0], normal[1], normal[2], 0.0);
+
+    normalsArray.push(normal);
+    normalsArray.push(normal);
+    normalsArray.push(normal);
+
+    positionsArray.push(a);
+    positionsArray.push(b);
+    positionsArray.push(c);
 }
 
 

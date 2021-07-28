@@ -6,7 +6,9 @@
 */
 
 // estruturas/buffers
-var plane0 = cena.nave[0];
+var planePos;
+var planeRot;
+var planeTransSpeed;
 
 // iluminação
 var ambientProduct;
@@ -96,7 +98,11 @@ function renderPlaneShaders() {
     Funções de desenho
 */
 // desenha o avião com as coordenadas disponíveis no arquivo config.js
-function drawPlane() {
+function drawPlane(i) {
+    planePos = vec3(cena.nave[i][0], cena.nave[i][1], cena.nave[i][2]);
+    planeRot = [cena.nave[i][3], cena.nave[i][4], cena.nave[i][5]];
+    planeTransSpeed = cena.nave[i][6];
+
     triangle(VA, VB, VC);
     triangle(VA, VC, VD);
 
@@ -107,32 +113,17 @@ function drawPlane() {
 /* ==================================================================
     Funções de animação
 */
-// medindo intervalo de tempo
-function planeMovement() {
-    var v = 0;
-    var tAnterior = Date.now();
-
-    for (var i = 0; i < 1000; i++)
-        v += Math.cos(i);
-
-    var tAtual = Date.now();
-    if (DEBUG)
-        console.log("Diferença em ms:", tAtual - tAnterior);
-}
-
 // atualiza posição da nave segundo os comandos do teclado
 function updatePlane() {
-    var transSpeed = plane0[6];
+    planePos[2] -= planeTransSpeed; // velocidade em z
 
-    var pos = [plane0[0], plane0[1], plane0[2] + transSpeed];
-    // var rot = [plane0[3], plane0[4], plane0[5]];
-    eye = vec3(0.0, 2.0, pos[2]);
+    eye = planePos;
 
     planeInstanceMatrix = mat4();
     // planeInstanceMatrix = mult(rotateX(theta[xAxis]), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateY(theta[yAxis]), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateZ(theta[zAxis]), planeInstanceMatrix);
-    planeInstanceMatrix = mult(translate(0.0, 0.0, pos[2]), planeInstanceMatrix);
+    planeInstanceMatrix = mult(translate(0.0, 0.0, planePos[2]), planeInstanceMatrix);
     gl.uniformMatrix4fv(
         gl.getUniformLocation(program2, "uInstanceMatrix"),
         false,

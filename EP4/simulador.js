@@ -60,7 +60,7 @@ window.onload = function main() {
     // Criando objetos na cena
     drawOcean();
     drawIsland();
-    drawPlane();
+    drawPlane(0);
 
     // Inicializando shaders
     initSceneShaders();
@@ -149,17 +149,18 @@ function setInterface() {
 
             // translação
             case J:
-                plane0[6] -= DELTA_TRANS;
-                console.log("Decrementa velocidade para:", plane0[6]);
+                console.log(planeTransSpeed)
+                planeTransSpeed -= DELTA_TRANS;
+                console.log("Decrementa velocidade para:", planeTransSpeed);
                 break;
 
             case L:
-                plane0[6] += DELTA_TRANS;
-                console.log("Incrementa velocidade para:", plane0[6]);
+                planeTransSpeed += DELTA_TRANS;
+                console.log("Incrementa velocidade para:", planeTransSpeed);
                 break;
 
             case K:
-                plane0[6] = 0;
+                planeTransSpeed = 0;
                 console.log("Zera velocidade de translação");
                 break;
 

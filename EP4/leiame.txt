@@ -20,6 +20,10 @@ Nenhum opcional foi feito.
     BUGS
 
 Não encontrei bugs no programa.
+- a nave desenhada com 
+    va=(0, 0, 0), vb = (-2,0,-6), vc=(0,0,-4.5) e vd=(2,0,-6)
+ficou de ponta cabeça, então desenhei com 
+    va=(0, 0, -6), vb = (-2,0,0), vc=(0,0,-1.5) e vd=(2,0,0)
 
 ===========================================================
 

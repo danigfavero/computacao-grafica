@@ -19,14 +19,14 @@ var program, program2;
 // câmera
 var modelViewMatrix, projectionMatrix;
 var nMatrix;
-var eye;
+var eye = vec3(0.0, 2.0, 150);
 
 // Camera position: modelview e projection
-var at = vec3(0.0, 0.0, 0.0);
+var at = vec3(0.0, 0.0, -1.0);
 var up = vec3(0.0, 1.0, 0.0);
-var radius = 400;
-var theta = 0.0;
-var phi = 0.0;
+var radius = 450;  // posição inicial do olho: z=400
+var theta = 1.2;   // theta inicial: 0.0
+var phi = 0.8;     // phi inicial: 0.0
 var dr = 5.0 * Math.PI/180.0;
 
 // iluminação
@@ -80,11 +80,7 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Câmera e perspectiva
-    eye = vec3(
-        radius*Math.sin(theta)*Math.cos(phi),
-        radius*Math.sin(theta)*Math.sin(phi), 
-        radius*Math.cos(theta)
-        );
+    //eye = vec3(0.0, 0.0, 150.0 -4.5);
 
     modelViewMatrix = lookAt(eye, at, up);
     projectionMatrix = perspective(fovy, aspect, near, far);
@@ -108,9 +104,6 @@ function render() {
     // Desenha:
     var nPlaneVertices = 6;
     gl.drawArrays(gl.TRIANGLES, nOceanVertices + nIslandVertices, nPlaneVertices);
-
-    // Animação
-    // requestAnimationFrame(render);
 }
 
 /* ==================================================================
@@ -143,9 +136,12 @@ function setInterface() {
     // passo
     document.getElementById("Passo").onclick = function() {
         if (DEBUG) console.log("Passo.");
+
+        // animação
         render();
     };
 
+    // comandos para a nave
     document.addEventListener('keydown', e => {
         if (DEBUG) console.log("Tecla pressionada: ", e.key, ", Code:", e.keyCode);
 
@@ -153,15 +149,18 @@ function setInterface() {
 
             // translação
             case J:
-                console.log("Decrementa velocidade");
+                plane0[6] -= DELTA_TRANS;
+                console.log("Decrementa velocidade para:", plane0[6]);
                 break;
 
             case L:
-                console.log("Incrementa velocidade");
+                plane0[6] += DELTA_TRANS;
+                console.log("Incrementa velocidade para:", plane0[6]);
                 break;
 
             case K:
-                console.log("Zera velocidade");
+                plane0[6] = 0;
+                console.log("Zera velocidade de translação");
                 break;
 
             // câmera

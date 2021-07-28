@@ -6,13 +6,26 @@
 */
 
 // estruturas/buffers
+var plane0 = cena.nave[0];
+
+// iluminação
 var ambientProduct;
 var diffuseProduct;
 var specularProduct;
 
 // câmera
-var modelViewMatrixLocPlane, projectionMatrixLocPlane; 
+var modelViewMatrixLocPlane, projectionMatrixLocPlane;
 var nMatrixLocPlane;
+var planeInstanceMatrix;
+
+// constantes
+const DELTA_TRANS = 1; // passo da translação
+
+// posição da nave em relação à origem
+const VA = vec4( 0.0, 0.0, -6.0, 1.0);
+const VB = vec4(-2.0, 0.0,  0.0, 1.0);
+const VC = vec4( 0.0, 0.0, -1.5, 1.0);
+const VD = vec4( 2.0, 0.0,  0.0, 1.0);
 
 /* ==================================================================
     Função de inicialização dos shaders
@@ -50,6 +63,8 @@ function renderPlaneShaders() {
     projectionMatrixLocPlane = gl.getUniformLocation(program2, "uProjectionMatrix");
     nMatrixLocPlane = gl.getUniformLocation(program2, "uNormalMatrix");
 
+    updatePlane();
+
     gl.uniform4fv(
         gl.getUniformLocation(program2,"uAmbientProduct"),
         flatten(ambientProduct)
@@ -82,11 +97,6 @@ function renderPlaneShaders() {
 */
 // desenha o avião com as coordenadas disponíveis no arquivo config.js
 function drawPlane() {
-    const VA = vec4( 0.0, 0.0,  0.0, 1.0);
-    const VB = vec4(-2.0, 0.0, -6.0, 1.0);
-    const VC = vec4( 0.0, 0.0, -4.5, 1.0);
-    const VD = vec4( 2.0, 0.0, -6.0, 1.0);
-
     triangle(VA, VB, VC);
     triangle(VA, VC, VD);
 
@@ -94,6 +104,41 @@ function drawPlane() {
                             [VA, VB, VC, VD] );
 }
 
+/* ==================================================================
+    Funções de animação
+*/
+// medindo intervalo de tempo
+function planeMovement() {
+    var v = 0;
+    var tAnterior = Date.now();
+
+    for (var i = 0; i < 1000; i++)
+        v += Math.cos(i);
+
+    var tAtual = Date.now();
+    if (DEBUG)
+        console.log("Diferença em ms:", tAtual - tAnterior);
+}
+
+// atualiza posição da nave segundo os comandos do teclado
+function updatePlane() {
+    var transSpeed = plane0[6];
+
+    var pos = [plane0[0], plane0[1], plane0[2] + transSpeed];
+    // var rot = [plane0[3], plane0[4], plane0[5]];
+    eye = vec3(0.0, 2.0, pos[2]);
+
+    planeInstanceMatrix = mat4();
+    // planeInstanceMatrix = mult(rotateX(theta[xAxis]), planeInstanceMatrix);
+    // planeInstanceMatrix = mult(rotateY(theta[yAxis]), planeInstanceMatrix);
+    // planeInstanceMatrix = mult(rotateZ(theta[zAxis]), planeInstanceMatrix);
+    planeInstanceMatrix = mult(translate(0.0, 0.0, pos[2]), planeInstanceMatrix);
+    gl.uniformMatrix4fv(
+        gl.getUniformLocation(program2, "uInstanceMatrix"),
+        false,
+        flatten(planeInstanceMatrix)
+        );
+}
 
 /* ==================================================================
     Shaders nave
@@ -104,6 +149,7 @@ in vec4 aPosition;
 in vec4 aNormal;
 out vec3 N, L, E;
 
+uniform mat4 uInstanceMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec4 uLightPosition;
@@ -118,7 +164,7 @@ void main() {
     L = - normalize(uLightPosition.xyz);
     E = normalize(pos);
     N = normalize(uNormalMatrix * aNormal.xyz);
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aPosition;
+    gl_Position = uProjectionMatrix * uModelViewMatrix * uInstanceMatrix * aPosition;
 }
 `
 

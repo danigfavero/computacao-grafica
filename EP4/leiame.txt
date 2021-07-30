@@ -25,6 +25,8 @@ Não encontrei bugs no programa.
 ficou de ponta cabeça, então desenhei com 
     va=(0, 0, -6), vb = (-2,0,0), vc=(0,0,-1.5) e vd=(2,0,0)
 
+- implementação do tempo de animação diferente do sugerido
+
 ===========================================================
 
     DEPENDÊNCIAS

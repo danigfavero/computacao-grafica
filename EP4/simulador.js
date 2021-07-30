@@ -12,6 +12,7 @@ var gl;
 
 // animação
 var gInterval;
+var paused = true;
 
 // shaders
 var program, program2;
@@ -19,7 +20,6 @@ var program, program2;
 // câmera
 var modelViewMatrix, projectionMatrix;
 var nMatrix;
-var eye = vec3(0.0, 2.0, 150);
 
 // Camera position: modelview e projection
 var at = vec3(0.0, 0.0, -1.0);
@@ -79,9 +79,6 @@ window.onload = function main() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Câmera e perspectiva
-    //eye = vec3(0.0, 0.0, 150.0 -4.5);
-
     modelViewMatrix = lookAt(eye, at, up);
     projectionMatrix = perspective(fovy, aspect, near, far);
     nMatrix = normalMatrix(modelViewMatrix, true);
@@ -120,6 +117,7 @@ function setInterface() {
             e.target.value = "Pausar";
     
             // animação
+            paused = false;
             gInterval = setInterval(render, 200);
     
         } else { // pausa o jogo
@@ -129,6 +127,7 @@ function setInterface() {
             e.target.value = "Jogar";
     
             // animação
+            paused = true;
             clearInterval(gInterval);
         }
     };
@@ -149,28 +148,36 @@ function setInterface() {
 
             // translação
             case J:
-                console.log(planeTransSpeed)
                 planeTransSpeed -= DELTA_TRANS;
-                console.log("Decrementa velocidade para:", planeTransSpeed);
+                if (DEBUG)
+                    console.log("Decrementa velocidade para:", planeTransSpeed);
                 break;
 
             case L:
                 planeTransSpeed += DELTA_TRANS;
-                console.log("Incrementa velocidade para:", planeTransSpeed);
+                if (DEBUG)
+                    console.log("Incrementa velocidade para:", planeTransSpeed);
                 break;
 
             case K:
                 planeTransSpeed = 0;
-                console.log("Zera velocidade de translação");
+                if (DEBUG)
+                    console.log("Zera velocidade de translação");
                 break;
 
             // câmera
             case I:
-                console.log("Aproxima câmera");
+                eye = add(eye, DELTA_CAM);
+                render();
+                if (DEBUG)
+                    console.log("Aproxima câmera para", eye);
                 break;
 
             case O:
-                console.log("Afasta câmera");
+                eye = subtract(eye, DELTA_CAM);
+                render();
+                if (DEBUG)
+                    console.log("Afasta câmera para", eye);
                 break;
 
             // rotação

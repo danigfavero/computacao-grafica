@@ -5,7 +5,7 @@
     Data: 30 de julho de 2021
 */
 
-// estruturas/buffers
+// estruturas
 var planePos;
 var planeRot;
 var planeTransSpeed;
@@ -19,9 +19,11 @@ var specularProduct;
 var modelViewMatrixLocPlane, projectionMatrixLocPlane;
 var nMatrixLocPlane;
 var planeInstanceMatrix;
+var eye = vec3(0.0, 2.0, 150);
 
 // constantes
 const DELTA_TRANS = 1; // passo da translação
+const DELTA_CAM = vec3(0.0, 0.2, 0.4); // passo do afastamento da câmera
 
 // posição da nave em relação à origem
 const VA = vec4( 0.0, 0.0, -6.0, 1.0);
@@ -115,15 +117,22 @@ function drawPlane(i) {
 */
 // atualiza posição da nave segundo os comandos do teclado
 function updatePlane() {
-    planePos[2] -= planeTransSpeed; // velocidade em z
+    if (!paused) {
+        planePos[2] -= planeTransSpeed; // velocidade em z
 
-    eye = planePos;
+        eye[2] -= planeTransSpeed;
+    }
 
     planeInstanceMatrix = mat4();
     // planeInstanceMatrix = mult(rotateX(theta[xAxis]), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateY(theta[yAxis]), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateZ(theta[zAxis]), planeInstanceMatrix);
-    planeInstanceMatrix = mult(translate(0.0, 0.0, planePos[2]), planeInstanceMatrix);
+    
+    planeInstanceMatrix = mult(
+        translate(planePos[0], planePos[1], planePos[2]),
+        planeInstanceMatrix
+        );
+
     gl.uniformMatrix4fv(
         gl.getUniformLocation(program2, "uInstanceMatrix"),
         false,

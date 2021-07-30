@@ -118,13 +118,15 @@ function drawPlane(i) {
 // atualiza posição da nave segundo os comandos do teclado
 function updatePlane() {
     if (!paused) {
-        planePos[2] -= planeTransSpeed; // velocidade em z
+        var v = normalize(subtract(at, eye)); // direção -z
+        v = mult(planeTransSpeed, v); // escala
 
-        eye[2] -= planeTransSpeed;
+        planePos = add(planePos, v);
+        eye = add(eye, v);
     }
 
     planeInstanceMatrix = mat4();
-    // planeInstanceMatrix = mult(rotateX(theta[xAxis]), planeInstanceMatrix);
+    // planeInstanceMatrix = mult(rotateX(45), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateY(theta[yAxis]), planeInstanceMatrix);
     // planeInstanceMatrix = mult(rotateZ(theta[zAxis]), planeInstanceMatrix);
     

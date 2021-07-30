@@ -9,6 +9,7 @@
 var planePos;
 var planeRot;
 var planeTransSpeed;
+var planeRotSpeed;
 
 // iluminação
 var ambientProduct;
@@ -23,6 +24,7 @@ var eye = vec3(0.0, 2.0, 150);
 
 // constantes
 const DELTA_TRANS = 1; // passo da translação
+const DELTA_ROT = 5; // passo da rotação
 const DELTA_CAM = vec3(0.0, 0.2, 0.4); // passo do afastamento da câmera
 
 // posição da nave em relação à origem
@@ -104,6 +106,7 @@ function drawPlane(i) {
     planePos = vec3(cena.nave[i][0], cena.nave[i][1], cena.nave[i][2]);
     planeRot = [cena.nave[i][3], cena.nave[i][4], cena.nave[i][5]];
     planeTransSpeed = cena.nave[i][6];
+    planeRotSpeed = [0, 0, 0];
 
     triangle(VA, VB, VC);
     triangle(VA, VC, VD);
@@ -117,18 +120,30 @@ function drawPlane(i) {
 */
 // atualiza posição da nave segundo os comandos do teclado
 function updatePlane() {
+    planeInstanceMatrix = mat4();
+
     if (!paused) {
         var v = normalize(subtract(at, eye)); // direção -z
-        v = mult(planeTransSpeed, v); // escala
 
+        // rotação
+        planeRot[0] += planeRotSpeed[0];
+        v = mult(rotateX(planeRot[0]), vec4(v[0], v[1], v[2], 1.0));
+
+        planeRot[1] += planeRotSpeed[1];
+        v = mult(rotateY(planeRot[1]), v);
+
+        planeRot[2] += planeRotSpeed[2];
+        v = mult(rotateZ(planeRot[2]), v);
+        
+        // translação
+        v = mult(planeTransSpeed, vec3(v[0], v[1], v[2])); // escala
         planePos = add(planePos, v);
         eye = add(eye, v);
     }
 
-    planeInstanceMatrix = mat4();
-    // planeInstanceMatrix = mult(rotateX(45), planeInstanceMatrix);
-    // planeInstanceMatrix = mult(rotateY(theta[yAxis]), planeInstanceMatrix);
-    // planeInstanceMatrix = mult(rotateZ(theta[zAxis]), planeInstanceMatrix);
+    planeInstanceMatrix = mult(rotateX(planeRot[0]), planeInstanceMatrix);
+    planeInstanceMatrix = mult(rotateY(planeRot[1]), planeInstanceMatrix);
+    planeInstanceMatrix = mult(rotateZ(planeRot[2]), planeInstanceMatrix);
     
     planeInstanceMatrix = mult(
         translate(planePos[0], planePos[1], planePos[2]),

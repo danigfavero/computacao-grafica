@@ -27,7 +27,7 @@ var up = vec3(0.0, 1.0, 0.0);
 var radius = 450;  // posição inicial do olho: z=400
 var theta = 1.2;   // theta inicial: 0.0
 var phi = 0.8;     // phi inicial: 0.0
-var dr = 5.0 * Math.PI/180.0;
+var dr = radians(5.0);
 
 // iluminação
 var ctm;
@@ -183,33 +183,40 @@ function setInterface() {
             // rotação
             // em x
             case W:
-                console.log("Incrementa rotação em x");
+                planeRotSpeed[0] += DELTA_ROT;
+                console.log("Incrementa rotação em x para:", planeRotSpeed[0]);
                 break;
 
             case X:
-                console.log("Decrementa rotação em x");
+                planeRotSpeed[0] -= DELTA_ROT;
+                console.log("Decrementa rotação em x para:", planeRotSpeed[0]);
                 break;
 
             // em y
             case A:
-                console.log("Incrementa rotação em y");
+                planeRotSpeed[1] += DELTA_ROT;
+                console.log("Incrementa rotação em y para:", planeRotSpeed[1]);
                 break;
 
             case D:
-                console.log("Decrementa rotação em y");
+                planeRotSpeed[1] -= DELTA_ROT;
+                console.log("Decrementa rotação em y para:", planeRotSpeed[1]);
                 break;
 
             // em z
             case Z:
-                console.log("Incrementa rotação em z");
+                planeRotSpeed[2] += DELTA_ROT;
+                console.log("Incrementa rotação em z para:", planeRotSpeed[2]);
                 break;
 
             case C:
-                console.log("Decrementa rotação em z");
+                planeRotSpeed[2] -= DELTA_ROT;
+                console.log("Decrementa rotação em z para:", planeRotSpeed[2]);
                 break;
 
             // zera
             case S:
+                planeRotSpeed = [0, 0, 0];
                 console.log("Zera velocidades de rotação");
         }
     });

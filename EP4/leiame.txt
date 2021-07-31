@@ -7,7 +7,12 @@
 
     O QUE FOI FEITO
 
-Comecei a partir do código feito no EP3.
+Comecei a partir do código feito no EP3. Criei a interface com os botões Jogar
+e Pausar, além do Passo. Criei a interface com os comandos do teclado: A, D, J,
+K e L. Dividi o código: separei a interface e função principal do programa no
+arquivo "simulador.js", as funções feitas no EP3 no "scene.js" e as funções de
+controle da nave no arquivo "plane.js". Implementei a translação e o movimento
+da câmera. Não consegui completar a implementação das rotações.
 
 ===========================================================
 
@@ -17,22 +22,39 @@ Nenhum opcional foi feito.
 
 ===========================================================
 
+    OBSERVAÇÕES
+
+- A nave desenhada com os vértices:
+        va = ( 0, 0,    0),
+        vb = (-2, 0,   -6),
+        vc = ( 0, 0, -4.5),
+        vd = ( 2, 0,   -6)
+    ficou de ponta cabeça, então a desenhei com os seguintes vértices:
+        va = ( 0, 0,   -6),
+        vb = (-2, 0,    0),
+        vc = ( 0, 0, -1.5),
+        vd = ( 2, 0,    0)
+
+- A implementação do tempo de animação foi diferente do sugerido no enunciado
+do EP. Preferi seguir uma abordagem similar ao EP2, com a função setInterval()
+
+===========================================================
+
     BUGS
 
-Não encontrei bugs no programa.
-- a nave desenhada com 
-    va=(0, 0, 0), vb = (-2,0,-6), vc=(0,0,-4.5) e vd=(2,0,-6)
-ficou de ponta cabeça, então desenhei com 
-    va=(0, 0, -6), vb = (-2,0,0), vc=(0,0,-1.5) e vd=(2,0,0)
-
-- implementação do tempo de animação diferente do sugerido
+- Na translação, a posição da câmera se move um pouco conforme a direção do
+movimento da nave
+- A rotação não funciona da maneira esperada, não consegui ajustar a câmera à
+rotação nas coordenadas do mundo
 
 ===========================================================
 
     DEPENDÊNCIAS
 
 O arquivo 'simulador.html' renderiza a página HTML, utilizando as dependências:
-    - 'simulador.js', que contém o código desenvolvido por mim neste EP;
+    - 'simulador.js', que contém o código principal e a interface;
+    - 'scene.js', que contém o código desenvolvido no EP3 (gera a ilha);
+    - 'plane.js', que contém o código que constrola a nave;
     - 'config.js', com os dados de configuração fornecidos com o enunciado;
     - 'webglUtils.js', que compila e linka os shaders utilizados;
     - 'MVnew.js', uma biblioteca para lidar com matrizes e vetores.

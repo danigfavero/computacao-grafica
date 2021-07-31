@@ -137,6 +137,7 @@ function setInterface() {
         if (DEBUG) console.log("Passo.");
 
         // animação
+        paused = false;
         render();
     };
 

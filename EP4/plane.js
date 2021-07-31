@@ -141,15 +141,18 @@ function updatePlane() {
         eye = add(eye, v);
     }
 
+    // rotação a ser realizada no shader
     planeInstanceMatrix = mult(rotateX(planeRot[0]), planeInstanceMatrix);
     planeInstanceMatrix = mult(rotateY(planeRot[1]), planeInstanceMatrix);
     planeInstanceMatrix = mult(rotateZ(planeRot[2]), planeInstanceMatrix);
     
+    // translação a ser realizada no shader
     planeInstanceMatrix = mult(
         translate(planePos[0], planePos[1], planePos[2]),
         planeInstanceMatrix
         );
-
+    
+    // envia matriz de transformações (trans e rot) para o shader
     gl.uniformMatrix4fv(
         gl.getUniformLocation(program2, "uInstanceMatrix"),
         false,
